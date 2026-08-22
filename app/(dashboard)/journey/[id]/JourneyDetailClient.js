@@ -22,6 +22,7 @@ import {
   Eye,
 } from "lucide-react";
 import CourseLine, { stagesForRole, stageLabel } from "@/components/CourseLine";
+import { reorderById } from "@/lib/reorder";
 import PdfThumbnail from "@/components/PdfThumbnail";
 import StageTag from "@/components/StageTag";
 import { createClient } from "@/lib/supabase/client";
@@ -495,12 +496,8 @@ export default function JourneyDetailClient({ journey, milestones, documents, la
     setDragOverMilestoneId(null);
     if (!fromId || fromId === m.id) return;
 
-    const reordered = [...orderedMilestones];
-    const fromIndex = reordered.findIndex((row) => row.id === fromId);
-    const toIndex = reordered.findIndex((row) => row.id === m.id);
-    if (fromIndex === -1 || toIndex === -1) return;
-    const [moved] = reordered.splice(fromIndex, 1);
-    reordered.splice(toIndex, 0, moved);
+    const reordered = reorderById(orderedMilestones, fromId, m.id);
+    if (reordered === orderedMilestones) return;
 
     setOrderedMilestones(reordered);
     startTransition(() => reorderMilestones(journey.id, reordered.map((row) => row.id)));
