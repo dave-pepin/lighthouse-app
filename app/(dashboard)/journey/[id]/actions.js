@@ -438,29 +438,19 @@ export async function deletePropertyPhoto(photoId, journeyId) {
   revalidatePath(`/journey/${journeyId}`);
 }
 
-export async function movePropertyPhoto(photoId, journeyId, direction) {
+// Persists a full manual reorder from drag-and-drop in one batch —
+// orderedIds is every photo id for this journey in its new order, which
+// becomes the new sort_order (index 0 is the main photo clients see).
+export async function reorderPropertyPhotos(journeyId, orderedIds) {
   const supabase = await createClient();
 
-  const { data: photos } = await supabase
-    .from("property_photos")
-    .select("id, sort_order")
-    .eq("journey_id", journeyId)
-    .order("sort_order", { ascending: true })
-    .order("id", { ascending: true });
-
-  if (!photos) return;
-
-  const index = photos.findIndex((p) => p.id === photoId);
-  if (index === -1) return;
-
-  const swapIndex = direction === "up" ? index - 1 : index + 1;
-  if (swapIndex < 0 || swapIndex >= photos.length) return;
-
-  const current = photos[index];
-  const neighbor = photos[swapIndex];
-
-  await supabase.from("property_photos").update({ sort_order: neighbor.sort_order }).eq("id", current.id);
-  await supabase.from("property_photos").update({ sort_order: current.sort_order }).eq("id", neighbor.id);
+  for (let index = 0; index < orderedIds.length; index++) {
+    await supabase
+      .from("property_photos")
+      .update({ sort_order: index })
+      .eq("id", orderedIds[index])
+      .eq("journey_id", journeyId);
+  }
 
   revalidatePath(`/journey/${journeyId}`);
 }

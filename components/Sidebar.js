@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Compass, Anchor, LifeBuoy, ImagePlus, X, Settings, Users, Menu, ChevronUp, ChevronDown, ShieldCheck } from "lucide-react";
+import { Compass, Anchor, LifeBuoy, ImagePlus, X, Settings, Users, Menu, GripVertical, ShieldCheck } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { addPropertyPhoto, deletePropertyPhoto, movePropertyPhoto } from "@/app/(dashboard)/journey/[id]/actions";
+import { addPropertyPhoto, deletePropertyPhoto, reorderPropertyPhotos } from "@/app/(dashboard)/journey/[id]/actions";
+import { reorderById } from "@/lib/reorder";
 
 const MAX_PHOTOS = 5;
 
@@ -31,6 +32,13 @@ export default function Sidebar({ guidanceCount, fullName, isPlatformOwner = fal
   const [photos, setPhotos] = useState([]);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [photoError, setPhotoError] = useState("");
+  const [draggedPhotoId, setDraggedPhotoId] = useState(null);
+  const [dragOverPhotoId, setDragOverPhotoId] = useState(null);
+  // Mirrors draggedPhotoId synchronously so dragover/drop can read it
+  // immediately without waiting on a React re-render mid-drag — see the
+  // same pattern (and the race condition it fixes) in
+  // JourneyDetailClient.js's milestone drag-and-drop.
+  const draggedPhotoIdRef = useRef(null);
 
   const loadPhotos = async (id) => {
     try {
@@ -90,11 +98,47 @@ export default function Sidebar({ guidanceCount, fullName, isPlatformOwner = fal
     });
   };
 
-  const handleMovePhoto = (photoId, direction) => {
+  const handlePhotoDragStart = (e, photoId) => {
+    // Dragging shouldn't hijack a click on the remove button — see the
+    // data-no-drag attribute on that button below.
+    if (e.target.closest("[data-no-drag]")) {
+      e.preventDefault();
+      return;
+    }
+    draggedPhotoIdRef.current = photoId;
+    setDraggedPhotoId(photoId);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handlePhotoDragOver = (e, photoId) => {
+    // Always preventDefault (not gated on state) so a fast drag doesn't
+    // miss every dragover before React catches up with the dragged id.
+    e.preventDefault();
+    if (!draggedPhotoIdRef.current || draggedPhotoIdRef.current === photoId) return;
+    setDragOverPhotoId(photoId);
+  };
+
+  const handlePhotoDrop = (e, photoId) => {
+    e.preventDefault();
+    const fromId = draggedPhotoIdRef.current;
+    draggedPhotoIdRef.current = null;
+    setDraggedPhotoId(null);
+    setDragOverPhotoId(null);
+    if (!fromId || fromId === photoId) return;
+
+    const reordered = reorderById(photos, fromId, photoId);
+    if (reordered === photos) return;
+
+    setPhotos(reordered);
     startTransition(async () => {
-      await movePropertyPhoto(photoId, journeyId, direction);
-      await loadPhotos(journeyId);
+      await reorderPropertyPhotos(journeyId, reordered.map((p) => p.id));
     });
+  };
+
+  const handlePhotoDragEnd = () => {
+    draggedPhotoIdRef.current = null;
+    setDraggedPhotoId(null);
+    setDragOverPhotoId(null);
   };
 
   const items = [
@@ -256,10 +300,24 @@ export default function Sidebar({ guidanceCount, fullName, isPlatformOwner = fal
             {photos.length > 0 ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <div style={{ fontSize: 10, color: "var(--lh-slate-light)", lineHeight: 1.35 }}>
-                  The first photo is the main one clients see — reorder with the arrows below to change it.
+                  The first photo is the main one clients see — drag to reorder.
                 </div>
                 {photos.map((p, idx) => (
-                  <div key={p.id} style={{ position: "relative" }}>
+                  <div
+                    key={p.id}
+                    draggable
+                    onDragStart={(e) => handlePhotoDragStart(e, p.id)}
+                    onDragOver={(e) => handlePhotoDragOver(e, p.id)}
+                    onDrop={(e) => handlePhotoDrop(e, p.id)}
+                    onDragEnd={handlePhotoDragEnd}
+                    style={{
+                      position: "relative",
+                      cursor: "grab",
+                      opacity: draggedPhotoId === p.id ? 0.4 : 1,
+                      outline: dragOverPhotoId === p.id && draggedPhotoId !== p.id ? "2px solid var(--lh-teal)" : "none",
+                      outlineOffset: 2,
+                    }}
+                  >
                     <img
                       src={p.url}
                       alt=""
@@ -292,6 +350,7 @@ export default function Sidebar({ guidanceCount, fullName, isPlatformOwner = fal
                       </span>
                     )}
                     <button
+                      data-no-drag
                       onClick={() => handleDeletePhoto(p.id)}
                       disabled={isPending}
                       title="Remove"
@@ -313,47 +372,22 @@ export default function Sidebar({ guidanceCount, fullName, isPlatformOwner = fal
                     >
                       <X size={11} color="white" />
                     </button>
-                    <div style={{ position: "absolute", bottom: 5, left: 5, display: "flex", gap: 3 }}>
-                      <button
-                        onClick={() => handleMovePhoto(p.id, "up")}
-                        disabled={idx === 0 || isPending}
-                        title="Move up"
-                        style={{
-                          background: "rgba(22, 50, 79, 0.8)",
-                          border: "none",
-                          borderRadius: 16,
-                          width: 18,
-                          height: 18,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          cursor: idx === 0 ? "default" : "pointer",
-                          padding: 0,
-                          opacity: idx === 0 ? 0.4 : 1,
-                        }}
-                      >
-                        <ChevronUp size={11} color="white" />
-                      </button>
-                      <button
-                        onClick={() => handleMovePhoto(p.id, "down")}
-                        disabled={idx === photos.length - 1 || isPending}
-                        title="Move down"
-                        style={{
-                          background: "rgba(22, 50, 79, 0.8)",
-                          border: "none",
-                          borderRadius: 16,
-                          width: 18,
-                          height: 18,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          cursor: idx === photos.length - 1 ? "default" : "pointer",
-                          padding: 0,
-                          opacity: idx === photos.length - 1 ? 0.4 : 1,
-                        }}
-                      >
-                        <ChevronDown size={11} color="white" />
-                      </button>
+                    <div
+                      title="Drag to reorder"
+                      style={{
+                        position: "absolute",
+                        bottom: 5,
+                        left: 5,
+                        background: "rgba(22, 50, 79, 0.8)",
+                        borderRadius: 16,
+                        width: 18,
+                        height: 18,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <GripVertical size={11} color="white" />
                     </div>
                   </div>
                 ))}
