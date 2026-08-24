@@ -255,6 +255,9 @@ export default function Sidebar({ guidanceCount, fullName, isPlatformOwner = fal
 
             {photos.length > 0 ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ fontSize: 10, color: "var(--lh-slate-light)", lineHeight: 1.35 }}>
+                  The first photo is the main one clients see — reorder with the arrows below to change it.
+                </div>
                 {photos.map((p, idx) => (
                   <div key={p.id} style={{ position: "relative" }}>
                     <img
@@ -262,13 +265,32 @@ export default function Sidebar({ guidanceCount, fullName, isPlatformOwner = fal
                       alt=""
                       style={{
                         width: "100%",
-                        height: 96,
+                        height: idx === 0 ? 150 : 96,
                         objectFit: "cover",
                         borderRadius: 8,
-                        border: "1px solid var(--lh-line)",
+                        border: idx === 0 ? "2px solid var(--lh-teal)" : "1px solid var(--lh-line)",
                         background: "var(--lh-fog)",
                       }}
                     />
+                    {idx === 0 && (
+                      <span
+                        className="lh-mono"
+                        style={{
+                          position: "absolute",
+                          top: 5,
+                          left: 5,
+                          background: "var(--lh-teal)",
+                          color: "white",
+                          fontSize: 8.5,
+                          fontWeight: 700,
+                          letterSpacing: 0.3,
+                          borderRadius: 10,
+                          padding: "2px 6px",
+                        }}
+                      >
+                        MAIN PHOTO
+                      </span>
+                    )}
                     <button
                       onClick={() => handleDeletePhoto(p.id)}
                       disabled={isPending}
@@ -338,7 +360,8 @@ export default function Sidebar({ guidanceCount, fullName, isPlatformOwner = fal
               </div>
             ) : (
               <div style={{ fontSize: 10.5, color: "var(--lh-slate-light)", lineHeight: 1.35 }}>
-                Add photos of the property.
+                Add photos of the property — the first one you upload becomes the main photo clients
+                see, with the rest shown smaller alongside it.
               </div>
             )}
             {photoError && <div style={{ fontSize: 10, color: "#B4472A" }}>{photoError}</div>}
