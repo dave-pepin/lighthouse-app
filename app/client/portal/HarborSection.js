@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
-import { CheckCircle2, Wrench, Landmark, Users, Share2, TrendingUp } from "lucide-react";
+import { CheckCircle2, Wrench, Landmark, Users, TrendingUp } from "lucide-react";
 import { markHarborSeen } from "./actions";
 
-const DEFAULTS = {
+// Shared with PortalView's persistent referral sidebar card, which
+// renders regardless of Harbor stage — DEFAULTS.referralNote and
+// ResourceCard are exported for that reuse.
+export const DEFAULTS = {
   trustedContractors: "Ask your Guide for a trusted recommendation anytime — plumbers, electricians, handymen, and more.",
   maintenanceNote: "A few things worth checking each season: HVAC filters, gutters before and after fall, smoke detector batteries, and exterior caulking.",
   propertyTaxNote: "Property tax bills and assessment info are usually available through your county assessor's website. Reach out if you'd like help finding the right link.",
@@ -24,7 +27,7 @@ function Beat({ justArrived, entranceDelay, className = "", style = {}, children
   );
 }
 
-function ResourceCard({ icon: Icon, title, imageUrl, children }) {
+export function ResourceCard({ icon: Icon, title, imageUrl, children }) {
   return (
     <div
       style={{
@@ -73,7 +76,6 @@ export default function HarborSection({ journeyId, guideName, justArrived, resou
   const trustedContractors = resources?.trustedContractors || DEFAULTS.trustedContractors;
   const maintenanceNote = resources?.maintenanceNote || DEFAULTS.maintenanceNote;
   const propertyTaxNote = resources?.propertyTaxNote || DEFAULTS.propertyTaxNote;
-  const referralNote = resources?.referralNote || DEFAULTS.referralNote;
   const homeValueNote = resources?.homeValueNote || null;
 
   return (
@@ -159,9 +161,6 @@ export default function HarborSection({ journeyId, guideName, justArrived, resou
             Homeowner Resources
           </h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <ResourceCard icon={Share2} title="Know someone buying or selling?">
-              {referralNote}
-            </ResourceCard>
             <ResourceCard icon={Wrench} title="Seasonal maintenance" imageUrl={resources?.maintenanceImageUrl}>
               {maintenanceNote}
             </ResourceCard>

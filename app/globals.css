@@ -147,6 +147,41 @@ body {
   }
 }
 
+/* Client portal's main content + persistent referral sidebar. The
+   sidebar stays sticky alongside the main column on desktop so it's
+   visible throughout the scroll, not just once at the top; below 860px
+   it stacks above the main content instead (a sticky sidebar makes no
+   sense once there's no side-by-side room left). */
+.lh-portal-layout {
+  display: flex;
+  gap: 28px;
+  align-items: flex-start;
+}
+
+.lh-portal-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.lh-portal-sidebar {
+  width: 300px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 20px;
+}
+
+@media (max-width: 860px) {
+  .lh-portal-layout {
+    flex-direction: column;
+  }
+
+  .lh-portal-sidebar {
+    width: 100%;
+    position: static;
+    order: -1;
+  }
+}
+
 /* Document row (Journey detail page): filename plus fixed-width metadata
    badges (milestone tag, upload date, "opened" status) on one line. At
    desktop widths there's room for all of it; below 860px the badges were

@@ -1,9 +1,9 @@
-import { Anchor, Eye } from "lucide-react";
+import { Anchor, Eye, Share2 } from "lucide-react";
 import CourseLine from "@/components/CourseLine";
 import StageTag from "@/components/StageTag";
 import ClientSignOutButton from "@/components/ClientSignOutButton";
 import ClientMilestoneList from "./ClientMilestoneList";
-import HarborSection from "./HarborSection";
+import HarborSection, { ResourceCard, DEFAULTS } from "./HarborSection";
 import TrackedDocumentLink from "./TrackedDocumentLink";
 
 // The actual portal layout — shared by the real client-facing page and
@@ -22,6 +22,7 @@ export default function PortalView({
   inHarbor,
   guideName,
   harborResources,
+  referralNote,
   justArrived,
   hasMultipleJourneys = false,
   previewMode = false,
@@ -89,7 +90,7 @@ export default function PortalView({
         </div>
       </div>
 
-      <div style={{ maxWidth: 760, margin: "0 auto", padding: "36px 32px 60px" }}>
+      <div style={{ maxWidth: 1080, margin: "0 auto", padding: "36px 32px 60px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
           <div>
             <h1 className="lh-display" style={{ fontSize: 26, fontWeight: 600, margin: 0 }}>
@@ -101,6 +102,9 @@ export default function PortalView({
           </div>
           <StageTag stage={journey.stage} statusLevel={journey.status_level} currentLabel={currentMilestoneLabel} />
         </div>
+
+        <div className="lh-portal-layout">
+        <div className="lh-portal-main">
 
         {propertyPhotosWithLinks.length > 0 && (
           <div style={{ margin: "20px 0" }}>
@@ -221,6 +225,14 @@ export default function PortalView({
             </div>
           </section>
         )}
+        </div>
+
+        <div className="lh-portal-sidebar">
+          <ResourceCard icon={Share2} title="Know someone buying or selling?">
+            {referralNote || DEFAULTS.referralNote}
+          </ResourceCard>
+        </div>
+        </div>
       </div>
     </div>
   );

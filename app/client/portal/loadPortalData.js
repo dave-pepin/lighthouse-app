@@ -69,26 +69,34 @@ export async function loadPortalData(supabase, admin, journey, { previewMode = f
   const inHarbor = journey.stage === "Harbor";
   let guideName = "Your Guide";
   let harborResources = null;
+  let referralNote = null;
 
-  if (inHarbor) {
-    const { data: agentProfile } = await admin
-      .from("users")
-      .select("full_name, agency_id")
-      .eq("id", journey.agent_id)
+  // Unlike the rest of harborResources (only rendered once a client
+  // reaches the Harbor stage), the referral note is shown persistently on
+  // every portal visit, at any stage — see PortalView's sidebar. Cheapest
+  // to just fetch guideName/agency unconditionally rather than duplicate
+  // this lookup.
+  const { data: agentProfile } = await admin
+    .from("users")
+    .select("full_name, agency_id")
+    .eq("id", journey.agent_id)
+    .maybeSingle();
+
+  guideName = agentProfile?.full_name || "Your Guide";
+
+  if (agentProfile?.agency_id) {
+    const { data: agency } = await admin
+      .from("agencies")
+      .select(
+        "trusted_contractors, maintenance_note, property_tax_note, referral_note, home_value_note, trusted_contractors_image, maintenance_image, property_tax_image, home_value_image"
+      )
+      .eq("id", agentProfile.agency_id)
       .maybeSingle();
 
-    guideName = agentProfile?.full_name || "Your Guide";
+    if (agency) {
+      referralNote = agency.referral_note;
 
-    if (agentProfile?.agency_id) {
-      const { data: agency } = await admin
-        .from("agencies")
-        .select(
-          "trusted_contractors, maintenance_note, property_tax_note, referral_note, home_value_note, trusted_contractors_image, maintenance_image, property_tax_image, home_value_image"
-        )
-        .eq("id", agentProfile.agency_id)
-        .maybeSingle();
-
-      if (agency) {
+      if (inHarbor) {
         const signResourceImage = async (path) => {
           if (!path) return null;
           const { data } = await admin.storage.from("harbor-resources").createSignedUrl(path, 60 * 60);
@@ -154,6 +162,7 @@ export async function loadPortalData(supabase, admin, journey, { previewMode = f
     inHarbor,
     guideName,
     harborResources,
+    referralNote,
     justArrived,
   };
 }
