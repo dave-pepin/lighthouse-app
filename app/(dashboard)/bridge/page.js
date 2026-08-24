@@ -32,7 +32,7 @@ export default async function BridgePage() {
   }
 
   return (
-    <div style={{ maxWidth: 760, margin: "0 auto", padding: "36px 32px 60px" }}>
+    <div style={{ maxWidth: 1040, margin: "0 auto", padding: "36px 32px 60px" }}>
       <div style={{ marginBottom: 26, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
           <h1 className="lh-display" style={{ fontSize: 28, fontWeight: 600, margin: 0 }}>

@@ -230,6 +230,11 @@ export default function JourneyDetailClient({ journey, milestones, documents, la
   // it re-syncs from the server-provided prop once the reorder is saved
   // and the page revalidates.
   const [orderedMilestones, setOrderedMilestones] = useState(milestones);
+  // Display-only alternate view — never written back to orderedMilestones
+  // or persisted via reorderMilestones, so switching to "Due Date" here
+  // has no effect on sort_order (or on what the client portal shows,
+  // since that's a completely separate query or the same agent).
+  const [sortMode, setSortMode] = useState("manual");
   const [draggedMilestoneId, setDraggedMilestoneId] = useState(null);
   const [dragOverMilestoneId, setDragOverMilestoneId] = useState(null);
   // Mirrors draggedMilestoneId synchronously so dragover/drop can read it
@@ -715,7 +720,7 @@ export default function JourneyDetailClient({ journey, milestones, documents, la
   };
 
   return (
-    <div style={{ maxWidth: 760, margin: "0 auto", padding: "36px 32px 60px" }}>
+    <div style={{ maxWidth: 1040, margin: "0 auto", padding: "36px 32px 60px" }}>
       <button
         onClick={() => router.back()}
         className="lh-focus"
@@ -1537,23 +1542,53 @@ export default function JourneyDetailClient({ journey, milestones, documents, la
       <div style={{ display: "flex", flexDirection: "column", gap: 20, marginTop: 20 }}>
         {/* Journey History */}
         <section style={{ background: "var(--lh-paper)", border: "1px solid var(--lh-line)", borderRadius: 14, padding: "18px 20px" }}>
-          <h2 className="lh-display" style={{ fontSize: 15.5, fontWeight: 600, margin: "0 0 12px" }}>
-            Journey History
-          </h2>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "0 0 12px" }}>
+            <h2 className="lh-display" style={{ fontSize: 15.5, fontWeight: 600, margin: 0 }}>
+              Journey History
+            </h2>
+            <select
+              value={sortMode}
+              onChange={(e) => setSortMode(e.target.value)}
+              className="lh-focus"
+              title="How this list is ordered"
+              style={{
+                fontSize: 11.5,
+                color: "var(--lh-navy-soft)",
+                fontWeight: 500,
+                border: "1px solid var(--lh-line)",
+                borderRadius: 6,
+                padding: "2px 4px",
+                fontFamily: "inherit",
+                background: "var(--lh-paper)",
+              }}
+            >
+              <option value="manual">Sort: Manual</option>
+              <option value="date">Sort: Due Date</option>
+            </select>
+          </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {(() => {
-              const nextId = orderedMilestones.find((m) => !m.done)?.id;
-              return orderedMilestones.map((m) => {
+              const displayedMilestones =
+                sortMode === "date"
+                  ? [...orderedMilestones].sort((a, b) => {
+                      if (!a.due_date && !b.due_date) return 0;
+                      if (!a.due_date) return 1;
+                      if (!b.due_date) return -1;
+                      return a.due_date.localeCompare(b.due_date);
+                    })
+                  : orderedMilestones;
+              const nextId = displayedMilestones.find((m) => !m.done)?.id;
+              return displayedMilestones.map((m) => {
                 const expanded = expandedMilestoneId === m.id;
                 const isNext = m.id === nextId;
                 return (
                   <div
                     key={m.id}
-                    draggable
-                    onDragStart={(e) => handleMilestoneDragStart(e, m)}
-                    onDragOver={(e) => handleMilestoneDragOver(e, m)}
-                    onDrop={(e) => handleMilestoneDrop(e, m)}
-                    onDragEnd={handleMilestoneDragEnd}
+                    draggable={sortMode === "manual"}
+                    onDragStart={sortMode === "manual" ? (e) => handleMilestoneDragStart(e, m) : undefined}
+                    onDragOver={sortMode === "manual" ? (e) => handleMilestoneDragOver(e, m) : undefined}
+                    onDrop={sortMode === "manual" ? (e) => handleMilestoneDrop(e, m) : undefined}
+                    onDragEnd={sortMode === "manual" ? handleMilestoneDragEnd : undefined}
                     style={{
                       background: isNext ? "var(--lh-teal-soft)" : "transparent",
                       borderRadius: 8,
@@ -1719,12 +1754,14 @@ export default function JourneyDetailClient({ journey, milestones, documents, la
                           dragHandleActiveRef.current = false;
                         }}
                         onClick={(e) => e.stopPropagation()}
-                        title="Drag to reorder"
+                        title={sortMode === "manual" ? "Drag to reorder" : undefined}
                         style={{
                           display: "flex",
                           flexShrink: 0,
-                          cursor: "grab",
+                          width: 14,
+                          cursor: sortMode === "manual" ? "grab" : "default",
                           touchAction: "none",
+                          visibility: sortMode === "manual" ? "visible" : "hidden",
                         }}
                       >
                         <GripVertical size={14} color="var(--lh-slate-light)" />
