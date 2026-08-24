@@ -3,7 +3,7 @@ import CourseLine from "@/components/CourseLine";
 import StageTag from "@/components/StageTag";
 import ClientSignOutButton from "@/components/ClientSignOutButton";
 import ClientMilestoneList from "./ClientMilestoneList";
-import HarborSection, { ResourceCard, DEFAULTS } from "./HarborSection";
+import HarborSection, { ResourceCard } from "./HarborSection";
 import TrackedDocumentLink from "./TrackedDocumentLink";
 
 // The actual portal layout — shared by the real client-facing page and
@@ -28,6 +28,130 @@ export default function PortalView({
   previewMode = false,
   closePreviewHref = "/bridge",
 }) {
+  const mainContent = (
+    <>
+      {propertyPhotosWithLinks.length > 0 && (
+        <div style={{ margin: "20px 0" }}>
+          <img
+            src={propertyPhotosWithLinks[0].url}
+            alt="Your property"
+            style={{
+              width: "100%",
+              height: 260,
+              objectFit: "cover",
+              borderRadius: 16,
+              border: "1px solid var(--lh-line)",
+              background: "var(--lh-fog)",
+            }}
+          />
+          {propertyPhotosWithLinks.length > 1 && (
+            <div style={{ display: "flex", gap: 8, marginTop: 8, overflowX: "auto" }}>
+              {propertyPhotosWithLinks.slice(1).map((p) => (
+                <img
+                  key={p.id}
+                  src={p.url}
+                  alt="Your property"
+                  style={{
+                    width: 168,
+                    height: 122,
+                    objectFit: "cover",
+                    borderRadius: 10,
+                    border: "1px solid var(--lh-line)",
+                    background: "var(--lh-fog)",
+                    flexShrink: 0,
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div style={{ margin: "22px 0 30px" }}>
+        <CourseLine stageIndex={journey.stage_index} statusLevel={journey.status_level} role={journey.role} />
+      </div>
+
+      {inHarbor && (
+        <HarborSection
+          journeyId={journey.id}
+          guideName={guideName}
+          justArrived={justArrived}
+          resources={harborResources}
+        />
+      )}
+
+      {latestUpdate && (
+        <section
+          style={{
+            background: "var(--lh-paper)",
+            border: "1px solid var(--lh-line)",
+            borderRadius: 14,
+            padding: "18px 20px",
+            marginBottom: 20,
+          }}
+        >
+          <h2 className="lh-display" style={{ fontSize: 15.5, fontWeight: 600, margin: "0 0 10px" }}>
+            Latest Update
+          </h2>
+          {journey.property_address && (
+            <div
+              className="lh-display"
+              style={{ fontSize: 15.5, fontWeight: 600, color: "var(--lh-navy)", marginBottom: 12 }}
+            >
+              {journey.property_address}
+            </div>
+          )}
+          <p style={{ fontSize: 14, lineHeight: 1.55, color: "var(--lh-navy-soft)", margin: 0 }}>
+            {latestUpdate.draft_text}
+          </p>
+        </section>
+      )}
+
+      <section
+        style={{
+          background: "var(--lh-paper)",
+          border: "1px solid var(--lh-line)",
+          borderRadius: 14,
+          padding: "18px 20px",
+          marginBottom: 20,
+        }}
+      >
+        <h2 className="lh-display" style={{ fontSize: 15.5, fontWeight: 600, margin: "0 0 12px" }}>
+          Your Progress
+        </h2>
+        <ClientMilestoneList
+          milestones={milestonesWithVideo}
+          documents={documentsWithLinks}
+          nextId={nextId}
+          journeyId={journey.id}
+          previewMode={previewMode}
+        />
+      </section>
+
+      {documentsWithLinks.filter((d) => !d.milestone_id).length > 0 && (
+        <section
+          style={{
+            background: "var(--lh-paper)",
+            border: "1px solid var(--lh-line)",
+            borderRadius: 14,
+            padding: "18px 20px",
+          }}
+        >
+          <h2 className="lh-display" style={{ fontSize: 15.5, fontWeight: 600, margin: "0 0 12px" }}>
+            Documents
+          </h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {documentsWithLinks
+              .filter((d) => !d.milestone_id)
+              .map((d) => (
+                <TrackedDocumentLink key={d.id} doc={d} journeyId={journey.id} previewMode={previewMode} />
+              ))}
+          </div>
+        </section>
+      )}
+    </>
+  );
+
   return (
     <div style={{ minHeight: "100vh", background: "var(--lh-fog)" }}>
       {previewMode && (
@@ -90,7 +214,7 @@ export default function PortalView({
         </div>
       </div>
 
-      <div style={{ maxWidth: 1080, margin: "0 auto", padding: "36px 32px 60px" }}>
+      <div style={{ maxWidth: referralNote ? 1080 : 760, margin: "0 auto", padding: "36px 32px 60px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
           <div>
             <h1 className="lh-display" style={{ fontSize: 26, fontWeight: 600, margin: 0 }}>
@@ -103,139 +227,21 @@ export default function PortalView({
           <StageTag stage={journey.stage} statusLevel={journey.status_level} currentLabel={currentMilestoneLabel} />
         </div>
 
-        <div className="lh-portal-layout">
-        <div className="lh-portal-main">
-
-        {propertyPhotosWithLinks.length > 0 && (
-          <div style={{ margin: "20px 0" }}>
-            <img
-              src={propertyPhotosWithLinks[0].url}
-              alt="Your property"
-              style={{
-                width: "100%",
-                height: 260,
-                objectFit: "cover",
-                borderRadius: 16,
-                border: "1px solid var(--lh-line)",
-                background: "var(--lh-fog)",
-              }}
-            />
-            {propertyPhotosWithLinks.length > 1 && (
-              <div style={{ display: "flex", gap: 8, marginTop: 8, overflowX: "auto" }}>
-                {propertyPhotosWithLinks.slice(1).map((p) => (
-                  <img
-                    key={p.id}
-                    src={p.url}
-                    alt="Your property"
-                    style={{
-                      width: 168,
-                      height: 122,
-                      objectFit: "cover",
-                      borderRadius: 10,
-                      border: "1px solid var(--lh-line)",
-                      background: "var(--lh-fog)",
-                      flexShrink: 0,
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        <div style={{ margin: "22px 0 30px" }}>
-          <CourseLine stageIndex={journey.stage_index} statusLevel={journey.status_level} role={journey.role} />
-        </div>
-
-        {inHarbor && (
-          <HarborSection
-            journeyId={journey.id}
-            guideName={guideName}
-            justArrived={justArrived}
-            resources={harborResources}
-          />
-        )}
-
-        {latestUpdate && (
-          <section
-            style={{
-              background: "var(--lh-paper)",
-              border: "1px solid var(--lh-line)",
-              borderRadius: 14,
-              padding: "18px 20px",
-              marginBottom: 20,
-            }}
-          >
-            <h2 className="lh-display" style={{ fontSize: 15.5, fontWeight: 600, margin: "0 0 10px" }}>
-              Latest Update
-            </h2>
-            {journey.property_address && (
-              <div
-                className="lh-display"
-                style={{ fontSize: 15.5, fontWeight: 600, color: "var(--lh-navy)", marginBottom: 12 }}
+        {referralNote ? (
+          <div className="lh-portal-layout">
+            <div className="lh-portal-main">{mainContent}</div>
+            <div className="lh-portal-sidebar">
+              <ResourceCard
+                icon={<Share2 size={17} color="var(--lh-teal)" strokeWidth={1.75} />}
+                title="Know someone buying or selling?"
               >
-                {journey.property_address}
-              </div>
-            )}
-            <p style={{ fontSize: 14, lineHeight: 1.55, color: "var(--lh-navy-soft)", margin: 0 }}>
-              {latestUpdate.draft_text}
-            </p>
-          </section>
-        )}
-
-        <section
-          style={{
-            background: "var(--lh-paper)",
-            border: "1px solid var(--lh-line)",
-            borderRadius: 14,
-            padding: "18px 20px",
-            marginBottom: 20,
-          }}
-        >
-          <h2 className="lh-display" style={{ fontSize: 15.5, fontWeight: 600, margin: "0 0 12px" }}>
-            Your Progress
-          </h2>
-          <ClientMilestoneList
-            milestones={milestonesWithVideo}
-            documents={documentsWithLinks}
-            nextId={nextId}
-            journeyId={journey.id}
-            previewMode={previewMode}
-          />
-        </section>
-
-        {documentsWithLinks.filter((d) => !d.milestone_id).length > 0 && (
-          <section
-            style={{
-              background: "var(--lh-paper)",
-              border: "1px solid var(--lh-line)",
-              borderRadius: 14,
-              padding: "18px 20px",
-            }}
-          >
-            <h2 className="lh-display" style={{ fontSize: 15.5, fontWeight: 600, margin: "0 0 12px" }}>
-              Documents
-            </h2>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {documentsWithLinks
-                .filter((d) => !d.milestone_id)
-                .map((d) => (
-                  <TrackedDocumentLink key={d.id} doc={d} journeyId={journey.id} previewMode={previewMode} />
-                ))}
+                {referralNote}
+              </ResourceCard>
             </div>
-          </section>
+          </div>
+        ) : (
+          mainContent
         )}
-        </div>
-
-        <div className="lh-portal-sidebar">
-          <ResourceCard
-            icon={<Share2 size={17} color="var(--lh-teal)" strokeWidth={1.75} />}
-            title="Know someone buying or selling?"
-          >
-            {referralNote || DEFAULTS.referralNote}
-          </ResourceCard>
-        </div>
-        </div>
       </div>
     </div>
   );
