@@ -27,7 +27,12 @@ function Beat({ justArrived, entranceDelay, className = "", style = {}, children
   );
 }
 
-export function ResourceCard({ icon: Icon, title, imageUrl, children }) {
+// `icon` takes an already-rendered element (e.g. <Share2 .../>), not a
+// component reference — this card is also used directly from the
+// Server Component PortalView.js, and passing a raw component type as a
+// prop across that server/client boundary isn't allowed by React, only
+// a rendered element is.
+export function ResourceCard({ icon, title, imageUrl, children }) {
   return (
     <div
       style={{
@@ -39,7 +44,7 @@ export function ResourceCard({ icon: Icon, title, imageUrl, children }) {
         gap: 11,
       }}
     >
-      <Icon size={17} color="var(--lh-teal)" strokeWidth={1.75} style={{ flexShrink: 0, marginTop: 1 }} />
+      <span style={{ flexShrink: 0, marginTop: 1, display: "flex" }}>{icon}</span>
       <div>
         <div className="lh-display" style={{ fontSize: 14, fontWeight: 600, color: "var(--lh-navy)", marginBottom: 3 }}>
           {title}
@@ -161,17 +166,33 @@ export default function HarborSection({ journeyId, guideName, justArrived, resou
             Homeowner Resources
           </h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <ResourceCard icon={Wrench} title="Seasonal maintenance" imageUrl={resources?.maintenanceImageUrl}>
+            <ResourceCard
+              icon={<Wrench size={17} color="var(--lh-teal)" strokeWidth={1.75} />}
+              title="Seasonal maintenance"
+              imageUrl={resources?.maintenanceImageUrl}
+            >
               {maintenanceNote}
             </ResourceCard>
-            <ResourceCard icon={Users} title="Trusted contractors" imageUrl={resources?.trustedContractorsImageUrl}>
+            <ResourceCard
+              icon={<Users size={17} color="var(--lh-teal)" strokeWidth={1.75} />}
+              title="Trusted contractors"
+              imageUrl={resources?.trustedContractorsImageUrl}
+            >
               {trustedContractors}
             </ResourceCard>
-            <ResourceCard icon={Landmark} title="Property tax information" imageUrl={resources?.propertyTaxImageUrl}>
+            <ResourceCard
+              icon={<Landmark size={17} color="var(--lh-teal)" strokeWidth={1.75} />}
+              title="Property tax information"
+              imageUrl={resources?.propertyTaxImageUrl}
+            >
               {propertyTaxNote}
             </ResourceCard>
             {homeValueNote && (
-              <ResourceCard icon={TrendingUp} title="Your home's value" imageUrl={resources?.homeValueImageUrl}>
+              <ResourceCard
+                icon={<TrendingUp size={17} color="var(--lh-teal)" strokeWidth={1.75} />}
+                title="Your home's value"
+                imageUrl={resources?.homeValueImageUrl}
+              >
                 {homeValueNote}
               </ResourceCard>
             )}

@@ -228,7 +228,10 @@ export default function PortalView({
         </div>
 
         <div className="lh-portal-sidebar">
-          <ResourceCard icon={Share2} title="Know someone buying or selling?">
+          <ResourceCard
+            icon={<Share2 size={17} color="var(--lh-teal)" strokeWidth={1.75} />}
+            title="Know someone buying or selling?"
+          >
             {referralNote || DEFAULTS.referralNote}
           </ResourceCard>
         </div>
