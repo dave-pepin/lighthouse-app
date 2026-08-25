@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
+import * as Sentry from "@sentry/nextjs";
 import { sendAgentEmail } from "@/lib/notify";
 
 // Marks that this client has seen the one-time Harbor arrival experience,
@@ -186,9 +187,10 @@ export async function fulfillDocumentRequest(requestId, fileName, storagePath) {
         subject: "New document uploaded for one of your clients",
         message: "Your client has uploaded a document you requested. Check the Journey page to view it.",
       });
-    } catch {
+    } catch (err) {
       // Don't let a notification failure stop the upload from counting as
       // fulfilled.
+      Sentry.captureException(err);
     }
   }
 
