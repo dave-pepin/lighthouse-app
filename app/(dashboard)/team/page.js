@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import TeamList from "./TeamList";
+import InviteTeamMemberForm from "./InviteTeamMemberForm";
 
 export default async function TeamPage() {
   const supabase = await createClient();
@@ -49,9 +50,12 @@ export default async function TeamPage() {
         Team
       </h1>
       <p style={{ fontSize: 14, color: "var(--lh-slate)", marginBottom: 28 }}>
-        Every agent in your agency. Revoking access blocks their login only — their
-        clients and Journeys stay exactly as they are.
+        Everyone in your agency shares the same Journeys — inviting a teammate gives them their
+        own login, not yours. Revoking access blocks their login only; their clients and Journeys
+        stay exactly as they are.
       </p>
+
+      <InviteTeamMemberForm />
 
       <TeamList agents={agentsWithStatus} currentUserId={user.id} />
     </div>

@@ -2,9 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createShortLink } from "@/lib/shortLinks";
-import { sendAgentWelcomeEmail } from "@/lib/notify";
-import { headers } from "next/headers";
+import { createAgentLogin } from "@/lib/agentInvite";
 import { revalidatePath } from "next/cache";
 
 // Every action here re-checks is_platform_owner itself, server-side —
@@ -31,43 +29,6 @@ async function requireOwner() {
   }
 
   return createAdminClient();
-}
-
-// Shared by both create flows below — generates the invite link and
-// welcome email, the same "set your own password" path a real Stripe
-// signup produces, rather than the owner having to relay a password.
-async function createAgentLogin(admin, { agencyId, fullName, email }) {
-  const h = await headers();
-  const origin = `${h.get("x-forwarded-proto") || "http"}://${h.get("host")}`;
-  const redirectTo = `${origin}/agent/set-password`;
-
-  const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
-    type: "invite",
-    email,
-    options: { redirectTo },
-  });
-
-  if (linkError || !linkData?.user?.id) {
-    throw new Error(`Couldn't create the agent's login: ${linkError?.message || "unknown error"}`);
-  }
-
-  const newUserId = linkData.user.id;
-
-  const { error: userError } = await admin.from("users").insert({
-    id: newUserId,
-    agency_id: agencyId,
-    full_name: fullName,
-    role: "agent",
-    email,
-  });
-
-  if (userError) {
-    await admin.auth.admin.deleteUser(newUserId);
-    throw new Error(userError.message);
-  }
-
-  const setPasswordLink = await createShortLink(admin, linkData.properties.action_link, origin);
-  await sendAgentWelcomeEmail({ to: email, fullName, setPasswordLink });
 }
 
 // Manually onboards a new customer outside Stripe checkout — the only
@@ -105,9 +66,10 @@ export async function createAgencyWithAgent({ agencyName, fullName, email, subsc
   revalidatePath("/admin");
 }
 
-// Adds a second (or third...) agent to an agency that already exists —
-// there's no other way to do this anywhere in the app today, not even
-// from within an agency's own Team page.
+// Adds a second (or third...) agent to an agency that already exists.
+// Agents can also do this themselves for their own agency from /team
+// (see inviteTeamMember in app/(dashboard)/team/actions.js) — this
+// version exists for the platform owner to do it on any agency's behalf.
 export async function addAgentToAgency({ agencyId, fullName, email }) {
   const admin = await requireOwner();
 
