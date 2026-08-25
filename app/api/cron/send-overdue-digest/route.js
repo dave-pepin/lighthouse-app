@@ -6,9 +6,10 @@ import { findOverdueDigestRecipients, buildDigestMessage } from "@/lib/overdueDi
 // Meant to be polled once a day (a second cron-job.org job alongside the
 // one for send-scheduled-updates — precise timing doesn't matter here,
 // so there's no reason to poll every few minutes the way that one does).
-// Finds every milestone that's overdue (due_date in the past) and still
-// not done, on any non-Harbor Journey, and emails each affected agent one
-// digest listing everything — at most once per agent per day, enforced
+// Finds every not-done milestone due today or earlier, on any non-Harbor
+// Journey, and emails each affected agent one digest listing whatever
+// meets their own overdue_digest_threshold_days preference (off, the day
+// it's due, or 1-3 days after) — at most once per agent per day, enforced
 // by users.last_overdue_digest_sent_at (see findOverdueDigestRecipients).
 export async function GET(request) {
   const providedSecret =
@@ -30,12 +31,15 @@ export async function GET(request) {
     return NextResponse.json({ error: journeysError.message }, { status: 500 });
   }
 
-  const { data: overdueMilestones, error: milestonesError } = await admin
+  // .lte, not .lt — a milestone due today is now a candidate too, since an
+  // agent can choose to be notified starting the day it's due (threshold
+  // 0). findOverdueDigestRecipients does the actual per-agent cutoff.
+  const { data: candidateMilestones, error: milestonesError } = await admin
     .from("milestones")
     .select("id, journey_id, label, due_date")
     .eq("done", false)
     .not("due_date", "is", null)
-    .lt("due_date", new Date().toISOString().slice(0, 10))
+    .lte("due_date", new Date().toISOString().slice(0, 10))
     .in("journey_id", (journeys || []).map((j) => j.id));
   if (milestonesError) {
     return NextResponse.json({ error: milestonesError.message }, { status: 500 });
@@ -44,13 +48,13 @@ export async function GET(request) {
   const agentIds = [...new Set((journeys || []).map((j) => j.agent_id))];
   const { data: agents, error: agentsError } = await admin
     .from("users")
-    .select("id, email, full_name, last_overdue_digest_sent_at")
+    .select("id, email, full_name, last_overdue_digest_sent_at, overdue_digest_threshold_days")
     .in("id", agentIds);
   if (agentsError) {
     return NextResponse.json({ error: agentsError.message }, { status: 500 });
   }
 
-  const recipients = findOverdueDigestRecipients({ journeys, overdueMilestones, agents });
+  const recipients = findOverdueDigestRecipients({ journeys, candidateMilestones, agents });
 
   let sent = 0;
   let failed = 0;
@@ -60,7 +64,7 @@ export async function GET(request) {
     try {
       await sendAgentEmail({
         to: recipient.email,
-        subject: `You have ${recipient.items.length} overdue milestone${recipient.items.length === 1 ? "" : "s"} across your Journeys`,
+        subject: `You have ${recipient.items.length} milestone${recipient.items.length === 1 ? "" : "s"} needing attention across your Journeys`,
         message: buildDigestMessage(recipient, origin),
       });
       await admin

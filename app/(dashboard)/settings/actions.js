@@ -128,6 +128,35 @@ export async function updateAgentContactInfo(fields) {
   revalidatePath("/settings");
 }
 
+// How many days after a milestone's due date this agent wants to hear
+// about it in the overdue digest — null means "off" entirely. See
+// add-overdue-digest-threshold-migration.sql / lib/overdueDigest.js.
+// Same "confirm identity, then mutate by id" pattern as
+// updateAgentContactInfo above (no established RLS policy yet for an
+// agent updating their own users row directly).
+export async function updateOverdueDigestPreference(thresholdDays) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error("Not signed in.");
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("users")
+    .update({ overdue_digest_threshold_days: thresholdDays })
+    .eq("id", user.id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/settings");
+}
+
 // Self-serve: buys the agent a real, dedicated Twilio number and attaches
 // it to Lighthouse's shared, already-approved 10DLC campaign — no per-
 // agent compliance step. This is a real purchase (Twilio bills the
