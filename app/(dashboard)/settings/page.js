@@ -129,7 +129,9 @@ export default async function SettingsPage() {
         </div>
 
         <OverdueDigestForm thresholdDays={profile.overdue_digest_threshold_days} />
+      </div>
 
+      <div style={{ marginBottom: 40 }}>
         <AgentBrandingForm
           userId={user.id}
           photoUrl={brandingPhotoUrl}

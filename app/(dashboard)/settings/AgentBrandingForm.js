@@ -249,6 +249,8 @@ export default function AgentBrandingForm({
     faxNumber,
   };
 
+  const hasAnyPreviewContent = !!(photoUrl || logoUrl || email || officeAddress || cellPhone || officePhone || faxNumber);
+
   return (
     <div>
       <h2 className="lh-display" style={{ fontSize: 20, fontWeight: 600, margin: "0 0 4px" }}>
@@ -258,98 +260,101 @@ export default function AgentBrandingForm({
         Shown to your clients as a small footer on their portal. Leave any of these blank to leave
         it out entirely.
       </p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-        <div style={fieldGroupStyle}>
-          <div style={{ display: "flex", gap: 24, flexWrap: "wrap", alignItems: "flex-start" }}>
-            <div style={{ flex: "1 1 280px" }}>
-              <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-                <BrandingImageSlot userId={userId} field="profile_photo_path" url={photoUrl} label="Your photo" round />
-                <BrandingImageSlot userId={userId} field="logo_path" url={logoUrl} label="Your logo" />
-              </div>
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 7,
-                  fontSize: 12.5,
-                  color: "var(--lh-slate)",
-                  marginTop: 16,
-                  cursor: "pointer",
-                }}
-              >
-                <input type="checkbox" checked={showName} onChange={handleToggleShowName} disabled={savingShowName} />
-                Show my name in the footer{" "}
-                <span style={{ color: "var(--lh-slate-light)" }}>(turn off if your logo already includes it)</span>
-              </label>
+      <div style={{ display: "flex", gap: 24, alignItems: "flex-start", flexWrap: "wrap" }}>
+        <div style={{ flex: "2 1 480px", minWidth: 0, display: "flex", flexDirection: "column", gap: 18 }}>
+          <div style={fieldGroupStyle}>
+            <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
+              <BrandingImageSlot userId={userId} field="profile_photo_path" url={photoUrl} label="Your photo" round />
+              <BrandingImageSlot userId={userId} field="logo_path" url={logoUrl} label="Your logo" />
             </div>
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 7,
+                fontSize: 12.5,
+                color: "var(--lh-slate)",
+                marginTop: 16,
+                cursor: "pointer",
+              }}
+            >
+              <input type="checkbox" checked={showName} onChange={handleToggleShowName} disabled={savingShowName} />
+              Show my name in the footer{" "}
+              <span style={{ color: "var(--lh-slate-light)" }}>(turn off if your logo already includes it)</span>
+            </label>
+          </div>
 
-            <div style={{ flex: "1 1 260px", minWidth: 0 }}>
-              <label style={{ ...labelStyle, marginBottom: 8 }}>Preview</label>
-              <div
-                style={{
-                  background: "var(--lh-fog)",
-                  border: "1px solid var(--lh-line)",
-                  borderRadius: 10,
-                  padding: "18px 14px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  minHeight: 100,
-                }}
-              >
-                {photoUrl || logoUrl || email || officeAddress || cellPhone || officePhone || faxNumber ? (
-                  <AgentBrandingFooter agentBranding={previewBranding} />
-                ) : (
-                  <span style={{ fontSize: 12.5, color: "var(--lh-slate-light)" }}>
-                    Nothing set yet — add a photo, logo, or contact detail to see a preview.
-                  </span>
-                )}
-              </div>
+          <div style={fieldGroupStyle}>
+            <label style={labelStyle}>Brand color</label>
+            <p style={helpStyle}>
+              A small accent on your portal footer only — this doesn&apos;t change the rest of your
+              clients&apos; portal.
+            </p>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <input
+                type="color"
+                value={color || "#2F6F6B"}
+                onChange={(e) => setColor(e.target.value)}
+                className="lh-focus"
+                style={{ width: 40, height: 36, border: "1px solid var(--lh-line)", borderRadius: 8, padding: 2, cursor: "pointer" }}
+              />
+              <input
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                placeholder="No color set"
+                className="lh-focus"
+                style={{ ...inputStyle, width: 120 }}
+              />
+              <button onClick={handleSaveColor} disabled={saving} className="lh-focus" style={primaryButtonStyle}>
+                {saving ? "Saving..." : "Save"}
+              </button>
+              {brandColor && (
+                <button
+                  onClick={handleClearColor}
+                  disabled={saving}
+                  className="lh-focus"
+                  style={{ background: "none", border: "none", color: "var(--lh-slate)", fontSize: 12.5, cursor: "pointer", textDecoration: "underline" }}
+                >
+                  Clear
+                </button>
+              )}
+              {saved && (
+                <span style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--lh-teal)", fontSize: 13, fontWeight: 600 }}>
+                  <Check size={14} /> Saved
+                </span>
+              )}
             </div>
+            {error && <div style={{ fontSize: 13, color: "var(--lh-red)", marginTop: 8 }}>{error}</div>}
           </div>
         </div>
 
-        <div style={fieldGroupStyle}>
-          <label style={labelStyle}>Brand color</label>
-          <p style={helpStyle}>
-            A small accent on your portal footer only — this doesn&apos;t change the rest of your
-            clients&apos; portal.
-          </p>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <input
-              type="color"
-              value={color || "#2F6F6B"}
-              onChange={(e) => setColor(e.target.value)}
-              className="lh-focus"
-              style={{ width: 40, height: 36, border: "1px solid var(--lh-line)", borderRadius: 8, padding: 2, cursor: "pointer" }}
-            />
-            <input
-              value={color}
-              onChange={(e) => setColor(e.target.value)}
-              placeholder="No color set"
-              className="lh-focus"
-              style={{ ...inputStyle, width: 120 }}
-            />
-            <button onClick={handleSaveColor} disabled={saving} className="lh-focus" style={primaryButtonStyle}>
-              {saving ? "Saving..." : "Save"}
-            </button>
-            {brandColor && (
-              <button
-                onClick={handleClearColor}
-                disabled={saving}
-                className="lh-focus"
-                style={{ background: "none", border: "none", color: "var(--lh-slate)", fontSize: 12.5, cursor: "pointer", textDecoration: "underline" }}
-              >
-                Clear
-              </button>
-            )}
-            {saved && (
-              <span style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--lh-teal)", fontSize: 13, fontWeight: 600 }}>
-                <Check size={14} /> Saved
+        {/* Wide enough that the real footer's photo/divider/text/logo row
+            doesn't wrap here the way it would in a cramped box — wrapping
+            in this preview would misrepresent how it actually looks on
+            the (much wider) real portal page. */}
+        <div style={{ flex: "3 1 460px", minWidth: 340, alignSelf: "stretch" }}>
+          <label style={{ ...labelStyle, marginBottom: 8 }}>Preview</label>
+          <div
+            style={{
+              background: "var(--lh-fog)",
+              border: "1px solid var(--lh-line)",
+              borderRadius: 10,
+              padding: "24px 18px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              minHeight: 200,
+              height: "calc(100% - 24px)",
+            }}
+          >
+            {hasAnyPreviewContent ? (
+              <AgentBrandingFooter agentBranding={previewBranding} />
+            ) : (
+              <span style={{ fontSize: 12.5, color: "var(--lh-slate-light)", textAlign: "center" }}>
+                Nothing set yet — add a photo, logo, or contact detail to see a preview.
               </span>
             )}
           </div>
-          {error && <div style={{ fontSize: 13, color: "var(--lh-red)", marginTop: 8 }}>{error}</div>}
         </div>
       </div>
     </div>
