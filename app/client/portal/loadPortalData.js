@@ -9,7 +9,7 @@
 // this Journey") plus the caller's own RLS-scoped Supabase client and an
 // admin client for the private-storage signed URLs.
 export async function loadPortalData(supabase, admin, journey, { previewMode = false } = {}) {
-  const [{ data: milestones }, { data: documents }, { data: updates }, { data: propertyPhotos }] =
+  const [{ data: milestones }, { data: documents }, { data: updates }, { data: propertyPhotos }, { data: documentRequests }] =
     await Promise.all([
       supabase
         .from("milestones")
@@ -40,6 +40,12 @@ export async function loadPortalData(supabase, admin, journey, { previewMode = f
         .eq("journey_id", journey.id)
         .order("sort_order", { ascending: true })
         .order("id", { ascending: true }),
+      supabase
+        .from("document_requests")
+        .select("id, label, requested_at")
+        .eq("journey_id", journey.id)
+        .eq("status", "pending")
+        .order("requested_at", { ascending: true }),
     ]);
 
   const latestUpdate = updates?.[0] || null;
@@ -164,5 +170,6 @@ export async function loadPortalData(supabase, admin, journey, { previewMode = f
     harborResources,
     referralNote,
     justArrived,
+    pendingDocumentRequests: documentRequests || [],
   };
 }

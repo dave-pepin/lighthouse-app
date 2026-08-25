@@ -5,6 +5,7 @@ import ClientSignOutButton from "@/components/ClientSignOutButton";
 import ClientMilestoneList from "./ClientMilestoneList";
 import HarborSection, { ResourceCard } from "./HarborSection";
 import TrackedDocumentLink from "./TrackedDocumentLink";
+import RequestedDocumentUpload from "./RequestedDocumentUpload";
 
 // The actual portal layout — shared by the real client-facing page and
 // the agent-facing preview, so they can never drift apart. `previewMode`
@@ -24,6 +25,7 @@ export default function PortalView({
   harborResources,
   referralNote,
   justArrived,
+  pendingDocumentRequests = [],
   hasMultipleJourneys = false,
   previewMode = false,
   closePreviewHref = "/bridge",
@@ -127,6 +129,27 @@ export default function PortalView({
           previewMode={previewMode}
         />
       </section>
+
+      {pendingDocumentRequests.length > 0 && (
+        <section
+          style={{
+            background: "var(--lh-paper)",
+            border: "1px solid var(--lh-line)",
+            borderRadius: 14,
+            padding: "18px 20px",
+            marginBottom: 20,
+          }}
+        >
+          <h2 className="lh-display" style={{ fontSize: 15.5, fontWeight: 600, margin: "0 0 12px" }}>
+            Requested from you
+          </h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {pendingDocumentRequests.map((request) => (
+              <RequestedDocumentUpload key={request.id} request={request} previewMode={previewMode} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {documentsWithLinks.filter((d) => !d.milestone_id).length > 0 && (
         <section

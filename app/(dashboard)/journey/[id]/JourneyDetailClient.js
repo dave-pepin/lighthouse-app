@@ -56,6 +56,8 @@ import {
   deleteDocument,
   setClosedDate,
   setAnniversaryReminder,
+  requestDocument,
+  cancelDocumentRequest,
 } from "./actions";
 
 function formatDate(dateString) {
@@ -210,7 +212,7 @@ function DocumentThumbnail({ doc, onDelete, deleting }) {
   );
 }
 
-export default function JourneyDetailClient({ journey, milestones, documents, latestUpdate, videoLibrary, clientAccess }) {
+export default function JourneyDetailClient({ journey, milestones, documents, latestUpdate, videoLibrary, clientAccess, documentRequests }) {
   const router = useRouter();
   const supabase = createClient();
   const fileInputRef = useRef(null);
@@ -307,6 +309,12 @@ export default function JourneyDetailClient({ journey, milestones, documents, la
   const [deletingDocumentId, setDeletingDocumentId] = useState(null);
   const [documentError, setDocumentError] = useState("");
 
+  const [requestingDocument, setRequestingDocument] = useState(false);
+  const [newRequestLabel, setNewRequestLabel] = useState("");
+  const [requestingDocumentPending, setRequestingDocumentPending] = useState(false);
+  const [requestError, setRequestError] = useState("");
+  const [cancelingRequestId, setCancelingRequestId] = useState(null);
+
   const approved = latestUpdate?.status === "sent";
   const held = latestUpdate?.status === "held";
   const scheduled = latestUpdate?.status === "scheduled";
@@ -359,6 +367,37 @@ export default function JourneyDetailClient({ journey, milestones, documents, la
       setDocumentError(err.message || "Couldn't delete that document.");
     }
     setDeletingDocumentId(null);
+  };
+
+  const handleRequestDocument = async () => {
+    const label = newRequestLabel.trim();
+    if (!label) return;
+    setRequestingDocumentPending(true);
+    setRequestError("");
+    try {
+      const { errors } = await requestDocument(journey.id, label);
+      if (errors.length > 0) {
+        setRequestError(errors.join(" "));
+      } else {
+        setNewRequestLabel("");
+        setRequestingDocument(false);
+      }
+      router.refresh();
+    } catch (err) {
+      setRequestError(err.message || "Couldn't send that request.");
+    }
+    setRequestingDocumentPending(false);
+  };
+
+  const handleCancelRequest = async (requestId) => {
+    setCancelingRequestId(requestId);
+    try {
+      await cancelDocumentRequest(requestId, journey.id);
+      router.refresh();
+    } catch (err) {
+      setRequestError(err.message || "Couldn't cancel that request.");
+    }
+    setCancelingRequestId(null);
   };
 
   const handleToggleClientAccess = async (revoke) => {
@@ -2152,25 +2191,48 @@ export default function JourneyDetailClient({ journey, milestones, documents, la
             <h2 className="lh-display" style={{ fontSize: 15.5, fontWeight: 600, margin: 0 }}>
               Documents
             </h2>
-            <button
-              onClick={() => handleUploadClick(null)}
-              disabled={uploading}
-              className="lh-focus"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 5,
-                background: "none",
-                border: "1px solid var(--lh-line)",
-                borderRadius: 7,
-                padding: "5px 9px",
-                fontSize: 12,
-                color: "var(--lh-slate)",
-                cursor: "pointer",
-              }}
-            >
-              <Upload size={12} /> {uploading ? "Uploading..." : "Upload"}
-            </button>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={() => setRequestingDocument((cur) => !cur)}
+                disabled={!journey.client_user_id}
+                title={!journey.client_user_id ? "Invite this client to their portal first" : undefined}
+                className="lh-focus"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                  background: "none",
+                  border: "1px solid var(--lh-line)",
+                  borderRadius: 7,
+                  padding: "5px 9px",
+                  fontSize: 12,
+                  color: "var(--lh-slate)",
+                  cursor: journey.client_user_id ? "pointer" : "default",
+                  opacity: journey.client_user_id ? 1 : 0.5,
+                }}
+              >
+                <Bell size={12} /> Request
+              </button>
+              <button
+                onClick={() => handleUploadClick(null)}
+                disabled={uploading}
+                className="lh-focus"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                  background: "none",
+                  border: "1px solid var(--lh-line)",
+                  borderRadius: 7,
+                  padding: "5px 9px",
+                  fontSize: 12,
+                  color: "var(--lh-slate)",
+                  cursor: "pointer",
+                }}
+              >
+                <Upload size={12} /> {uploading ? "Uploading..." : "Upload"}
+              </button>
+            </div>
             <input
               ref={fileInputRef}
               type="file"
@@ -2185,6 +2247,110 @@ export default function JourneyDetailClient({ journey, milestones, documents, la
               style={{ display: "none" }}
             />
           </div>
+
+          {requestingDocument && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input
+                  autoFocus
+                  value={newRequestLabel}
+                  onChange={(e) => setNewRequestLabel(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleRequestDocument()}
+                  placeholder="e.g. Proof of funds"
+                  className="lh-focus"
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    border: "1px solid var(--lh-line)",
+                    borderRadius: 7,
+                    padding: "6px 9px",
+                    fontSize: 13,
+                    fontFamily: "inherit",
+                  }}
+                />
+                <button
+                  onClick={handleRequestDocument}
+                  disabled={requestingDocumentPending || !newRequestLabel.trim()}
+                  className="lh-focus"
+                  style={{
+                    background: "var(--lh-navy)",
+                    color: "white",
+                    border: "none",
+                    borderRadius: 7,
+                    padding: "6px 12px",
+                    fontSize: 12.5,
+                    cursor: "pointer",
+                    opacity: requestingDocumentPending || !newRequestLabel.trim() ? 0.6 : 1,
+                  }}
+                >
+                  {requestingDocumentPending ? "Sending..." : "Send request"}
+                </button>
+                <button
+                  onClick={() => {
+                    setRequestingDocument(false);
+                    setNewRequestLabel("");
+                    setRequestError("");
+                  }}
+                  className="lh-focus"
+                  style={{ background: "none", border: "1px solid var(--lh-line)", borderRadius: 7, padding: "6px 12px", fontSize: 12.5, color: "var(--lh-slate)", cursor: "pointer" }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {requestError && (
+            <div style={{ fontSize: 12.5, color: "var(--lh-red)", marginBottom: 12 }}>{requestError}</div>
+          )}
+
+          {documentRequests?.filter((r) => r.status === "pending").length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+              {documentRequests
+                .filter((r) => r.status === "pending")
+                .map((r) => (
+                  <div
+                    key={r.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 9,
+                      background: "var(--lh-fog)",
+                      borderRadius: 9,
+                      padding: "7px 11px",
+                    }}
+                  >
+                    <span
+                      className="lh-mono"
+                      style={{
+                        fontSize: 10,
+                        color: "var(--lh-gold)",
+                        background: "var(--lh-gold-soft)",
+                        borderRadius: 20,
+                        padding: "1px 7px",
+                        flexShrink: 0,
+                      }}
+                    >
+                      Requested
+                    </span>
+                    <span style={{ flex: 1, fontSize: 13, color: "var(--lh-navy-soft)" }}>{r.label}</span>
+                    <span className="lh-mono" style={{ fontSize: 10.5, color: "var(--lh-slate-light)" }}>
+                      {formatDate(r.requested_at)}
+                    </span>
+                    <button
+                      onClick={() => handleCancelRequest(r.id)}
+                      disabled={cancelingRequestId === r.id}
+                      title="Cancel request"
+                      className="lh-focus"
+                      style={{ background: "none", border: "none", padding: 2, cursor: "pointer", display: "flex" }}
+                    >
+                      <X size={13} color="var(--lh-slate-light)" />
+                    </button>
+                  </div>
+                ))}
+            </div>
+          )}
+
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {documents.map((d) => {
               const attachedMilestone = d.milestone_id
@@ -2227,6 +2393,22 @@ export default function JourneyDetailClient({ journey, milestones, documents, la
                         }}
                       >
                         {attachedMilestone.label}
+                      </span>
+                    )}
+                    {d.uploaded_by === "client" && (
+                      <span
+                        className="lh-mono"
+                        title="Uploaded by the client"
+                        style={{
+                          fontSize: 10,
+                          color: "var(--lh-teal)",
+                          background: "var(--lh-teal-soft)",
+                          borderRadius: 20,
+                          padding: "1px 7px",
+                          flexShrink: 0,
+                        }}
+                      >
+                        From client
                       </span>
                     )}
                     <span className="lh-mono" style={{ fontSize: 11, color: "var(--lh-slate-light)", flexShrink: 0 }}>
