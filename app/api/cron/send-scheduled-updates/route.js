@@ -3,6 +3,13 @@ import * as Sentry from "@sentry/nextjs";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { dispatchWeeklyUpdate } from "@/lib/weeklyUpdateSend";
 import { sendAgentEmail } from "@/lib/notify";
+import { runWithConcurrencyLimit } from "@/lib/concurrency";
+
+// Bounds how many updates' journey lookups/sends/DB writes run at once —
+// high enough to matter at "hundreds of agents" scale, low enough to
+// stay well under Resend's, Twilio's, and Supabase's own per-second
+// limits.
+const CONCURRENCY_LIMIT = 10;
 
 // Hit on a schedule by an external pinger (e.g. cron-job.org) every few
 // minutes — not by Vercel's own Cron Jobs feature, since that's capped
@@ -59,7 +66,7 @@ export async function GET(request) {
     }
   }
 
-  for (const update of dueUpdates || []) {
+  async function processUpdate(update) {
     const { data: journey } = await admin
       .from("journeys")
       .select("*, users:agent_id (full_name, email, sms_phone_number, reply_to_email)")
@@ -76,7 +83,7 @@ export async function GET(request) {
       details.push({ id: update.id, error: errorMessage });
       Sentry.captureMessage(`Scheduled update ${update.id} failed: ${errorMessage}`, "warning");
       await notifyAgentOfFailure(journey?.users?.email, journey?.client_name || "your client", errorMessage);
-      continue;
+      return;
     }
 
     const dispatchErrors = await dispatchWeeklyUpdate(update, journey);
@@ -90,7 +97,7 @@ export async function GET(request) {
       details.push({ id: update.id, error: errorMessage });
       Sentry.captureMessage(`Scheduled update ${update.id} failed to dispatch: ${errorMessage}`, "error");
       await notifyAgentOfFailure(journey.users?.email, journey.client_name, errorMessage);
-      continue;
+      return;
     }
 
     await admin
@@ -99,6 +106,8 @@ export async function GET(request) {
       .eq("id", update.id);
     sent++;
   }
+
+  await runWithConcurrencyLimit(dueUpdates || [], CONCURRENCY_LIMIT, processUpdate);
 
   if (failed > 0) {
     try {

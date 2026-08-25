@@ -3,6 +3,12 @@ import * as Sentry from "@sentry/nextjs";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendAgentEmail } from "@/lib/notify";
 import { findOverdueDigestRecipients, buildDigestMessage } from "@/lib/overdueDigest";
+import { runWithConcurrencyLimit } from "@/lib/concurrency";
+
+// Bounds how many recipients' emails/DB writes run at once — high enough
+// to matter at "hundreds of agents" scale, low enough to stay well under
+// Resend's and Supabase's own per-second limits.
+const CONCURRENCY_LIMIT = 10;
 
 // Meant to be polled once a day (a second cron-job.org job alongside the
 // one for send-scheduled-updates — precise timing doesn't matter here,
@@ -61,7 +67,7 @@ export async function GET(request) {
   let failed = 0;
   const details = [];
 
-  for (const recipient of recipients) {
+  async function processRecipient(recipient) {
     try {
       await sendAgentEmail({
         to: recipient.email,
@@ -79,6 +85,8 @@ export async function GET(request) {
       Sentry.captureException(err);
     }
   }
+
+  await runWithConcurrencyLimit(recipients, CONCURRENCY_LIMIT, processRecipient);
 
   return NextResponse.json({ agentsChecked: agentIds.length, eligible: recipients.length, sent, failed, details });
 }
