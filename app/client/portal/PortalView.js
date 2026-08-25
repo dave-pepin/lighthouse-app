@@ -1,4 +1,4 @@
-import { Anchor, Eye, Share2 } from "lucide-react";
+import { Anchor, Eye, Share2, Mail, Phone } from "lucide-react";
 import CourseLine from "@/components/CourseLine";
 import StageTag from "@/components/StageTag";
 import ClientSignOutButton from "@/components/ClientSignOutButton";
@@ -272,38 +272,70 @@ export default function PortalView({
       {hasBrandingFooter && (
         <div
           style={{
-            borderTop: `3px solid ${agentBranding.brandColor || "var(--lh-line)"}`,
+            borderTop: "1px solid var(--lh-line)",
             background: "var(--lh-paper)",
-            padding: "20px 32px",
+            padding: "26px 32px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            gap: 14,
           }}
         >
-          {agentBranding.photoUrl && (
-            <img
-              src={agentBranding.photoUrl}
-              alt={agentBranding.fullName || "Your agent"}
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: "50%",
-                objectFit: "cover",
-                border: "1px solid var(--lh-line)",
-              }}
-            />
-          )}
-          {agentBranding.logoUrl && (
-            <img
-              src={agentBranding.logoUrl}
-              alt=""
-              style={{ height: 36, width: "auto", maxWidth: 160, objectFit: "contain" }}
-            />
-          )}
-          {agentBranding.fullName && (
-            <span style={{ fontSize: 12.5, color: "var(--lh-slate)" }}>{agentBranding.fullName}</span>
-          )}
+          {/* Styled like an email signature: photo, a colored divider,
+              name + contact lines, then the logo. */}
+          <div style={{ display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap", justifyContent: "center" }}>
+            {agentBranding.photoUrl && (
+              <img
+                src={agentBranding.photoUrl}
+                alt={agentBranding.fullName || "Your agent"}
+                style={{
+                  width: 72,
+                  height: 72,
+                  borderRadius: "50%",
+                  objectFit: "cover",
+                  border: "1px solid var(--lh-line)",
+                  flexShrink: 0,
+                }}
+              />
+            )}
+
+            {agentBranding.photoUrl && (agentBranding.fullName || agentBranding.email || agentBranding.phone) && (
+              <div
+                style={{
+                  width: 2,
+                  alignSelf: "stretch",
+                  minHeight: 56,
+                  background: agentBranding.brandColor || "var(--lh-line)",
+                  flexShrink: 0,
+                }}
+              />
+            )}
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              {agentBranding.fullName && (
+                <span className="lh-display" style={{ fontSize: 16.5, fontWeight: 600, color: "var(--lh-navy)" }}>
+                  {agentBranding.fullName}
+                </span>
+              )}
+              {agentBranding.phone && (
+                <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "var(--lh-slate)" }}>
+                  <Phone size={12} strokeWidth={1.75} /> {agentBranding.phone}
+                </span>
+              )}
+              {agentBranding.email && (
+                <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "var(--lh-slate)" }}>
+                  <Mail size={12} strokeWidth={1.75} /> {agentBranding.email}
+                </span>
+              )}
+            </div>
+
+            {agentBranding.logoUrl && (
+              <img
+                src={agentBranding.logoUrl}
+                alt=""
+                style={{ height: 48, width: "auto", maxWidth: 180, objectFit: "contain", marginLeft: 8 }}
+              />
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -84,7 +84,7 @@ export async function loadPortalData(supabase, admin, journey, { previewMode = f
   // this lookup.
   const { data: agentProfile } = await admin
     .from("users")
-    .select("full_name, agency_id, profile_photo_path, logo_path, brand_color")
+    .select("full_name, agency_id, profile_photo_path, logo_path, brand_color, reply_to_email, sms_phone_number")
     .eq("id", journey.agent_id)
     .maybeSingle();
 
@@ -107,6 +107,8 @@ export async function loadPortalData(supabase, admin, journey, { previewMode = f
     logoUrl: brandingLogoSigned.data?.signedUrl || null,
     brandColor: agentProfile?.brand_color || null,
     fullName: guideName,
+    email: agentProfile?.reply_to_email || null,
+    phone: agentProfile?.sms_phone_number || null,
   };
 
   if (agentProfile?.agency_id) {
