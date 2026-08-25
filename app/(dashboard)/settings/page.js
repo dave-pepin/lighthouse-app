@@ -26,7 +26,7 @@ export default async function SettingsPage() {
   const { data: profile } = await supabase
     .from("users")
     .select(
-      "agency_id, sms_phone_number, reply_to_email, overdue_digest_threshold_days, profile_photo_path, logo_path, brand_color"
+      "agency_id, sms_phone_number, reply_to_email, overdue_digest_threshold_days, profile_photo_path, logo_path, brand_color, office_address, cell_phone, office_phone, fax_number"
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -121,6 +121,10 @@ export default async function SettingsPage() {
           <AgentContactForm
             smsPhoneNumber={profile.sms_phone_number}
             replyToEmail={profile.reply_to_email}
+            officeAddress={profile.office_address}
+            cellPhone={profile.cell_phone}
+            officePhone={profile.office_phone}
+            faxNumber={profile.fax_number}
           />
         </div>
 

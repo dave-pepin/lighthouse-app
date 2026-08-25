@@ -84,7 +84,9 @@ export async function loadPortalData(supabase, admin, journey, { previewMode = f
   // this lookup.
   const { data: agentProfile } = await admin
     .from("users")
-    .select("full_name, agency_id, profile_photo_path, logo_path, brand_color, reply_to_email, sms_phone_number")
+    .select(
+      "full_name, agency_id, profile_photo_path, logo_path, brand_color, reply_to_email, office_address, cell_phone, office_phone, fax_number"
+    )
     .eq("id", journey.agent_id)
     .maybeSingle();
 
@@ -108,7 +110,10 @@ export async function loadPortalData(supabase, admin, journey, { previewMode = f
     brandColor: agentProfile?.brand_color || null,
     fullName: guideName,
     email: agentProfile?.reply_to_email || null,
-    phone: agentProfile?.sms_phone_number || null,
+    officeAddress: agentProfile?.office_address || null,
+    cellPhone: agentProfile?.cell_phone || null,
+    officePhone: agentProfile?.office_phone || null,
+    faxNumber: agentProfile?.fax_number || null,
   };
 
   if (agentProfile?.agency_id) {

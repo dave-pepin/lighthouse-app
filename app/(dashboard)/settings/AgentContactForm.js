@@ -187,18 +187,35 @@ function PhoneNumberSection({ smsPhoneNumber }) {
   );
 }
 
-export default function AgentContactForm({ smsPhoneNumber, replyToEmail }) {
+export default function AgentContactForm({
+  smsPhoneNumber,
+  replyToEmail,
+  officeAddress,
+  cellPhone,
+  officePhone,
+  faxNumber,
+}) {
   const [email, setEmail] = useState(replyToEmail || "");
+  const [address, setAddress] = useState(officeAddress || "");
+  const [cell, setCell] = useState(cellPhone || "");
+  const [office, setOffice] = useState(officePhone || "");
+  const [fax, setFax] = useState(faxNumber || "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSaveEmail = async () => {
+  const handleSave = async () => {
     setSaving(true);
     setSaved(false);
     setError("");
     try {
-      await updateAgentContactInfo({ replyToEmail: email });
+      await updateAgentContactInfo({
+        replyToEmail: email,
+        officeAddress: address,
+        cellPhone: cell,
+        officePhone: office,
+        faxNumber: fax,
+      });
       setSaved(true);
     } catch (err) {
       setError(err.message || "Couldn't save those changes.");
@@ -214,22 +231,84 @@ export default function AgentContactForm({ smsPhoneNumber, replyToEmail }) {
       </div>
 
       <div style={fieldGroupStyle}>
-        <label style={labelStyle}>Reply-to email</label>
+        <label style={labelStyle}>Contact details</label>
         <p style={helpStyle}>
-          Weekly updates and invites still send from Lighthouse's address (with your name shown as
-          the sender), but any reply a client sends will land here instead of the platform's inbox.
+          Reply-to email: weekly updates and invites still send from Lighthouse's address (with
+          your name shown as the sender), but any reply a client sends lands here instead of the
+          platform's inbox. The rest are optional, purely for display — they show up on your
+          clients&apos; portal footer, and nowhere else.
         </p>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="lh-focus"
-          style={inputStyle}
-          placeholder="you@youragency.com"
-        />
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div>
+            <label style={{ fontSize: 11.5, fontWeight: 600, color: "var(--lh-slate)", display: "block", marginBottom: 4 }}>
+              Reply-to email
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="lh-focus"
+              style={inputStyle}
+              placeholder="you@youragency.com"
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: 11.5, fontWeight: 600, color: "var(--lh-slate)", display: "block", marginBottom: 4 }}>
+              Office address <span style={{ fontWeight: 400, color: "var(--lh-slate-light)" }}>(optional)</span>
+            </label>
+            <input
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              className="lh-focus"
+              style={inputStyle}
+              placeholder="123 Main St, Springfield"
+            />
+          </div>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <div style={{ flex: "1 1 160px", minWidth: 0 }}>
+              <label style={{ fontSize: 11.5, fontWeight: 600, color: "var(--lh-slate)", display: "block", marginBottom: 4 }}>
+                Cell phone <span style={{ fontWeight: 400, color: "var(--lh-slate-light)" }}>(optional)</span>
+              </label>
+              <input
+                type="tel"
+                value={cell}
+                onChange={(e) => setCell(e.target.value)}
+                className="lh-focus"
+                style={inputStyle}
+                placeholder="555-123-4567"
+              />
+            </div>
+            <div style={{ flex: "1 1 160px", minWidth: 0 }}>
+              <label style={{ fontSize: 11.5, fontWeight: 600, color: "var(--lh-slate)", display: "block", marginBottom: 4 }}>
+                Office phone <span style={{ fontWeight: 400, color: "var(--lh-slate-light)" }}>(optional)</span>
+              </label>
+              <input
+                type="tel"
+                value={office}
+                onChange={(e) => setOffice(e.target.value)}
+                className="lh-focus"
+                style={inputStyle}
+                placeholder="555-123-4567"
+              />
+            </div>
+          </div>
+          <div>
+            <label style={{ fontSize: 11.5, fontWeight: 600, color: "var(--lh-slate)", display: "block", marginBottom: 4 }}>
+              Fax number <span style={{ fontWeight: 400, color: "var(--lh-slate-light)" }}>(optional)</span>
+            </label>
+            <input
+              type="tel"
+              value={fax}
+              onChange={(e) => setFax(e.target.value)}
+              className="lh-focus"
+              style={{ ...inputStyle, maxWidth: 220 }}
+              placeholder="555-123-4567"
+            />
+          </div>
+        </div>
         {error && <div style={{ fontSize: 13, color: "var(--lh-red)", marginTop: 8 }}>{error}</div>}
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
-          <button onClick={handleSaveEmail} disabled={saving} className="lh-focus" style={primaryButtonStyle}>
+          <button onClick={handleSave} disabled={saving} className="lh-focus" style={primaryButtonStyle}>
             {saving ? "Saving..." : "Save"}
           </button>
           {saved && (

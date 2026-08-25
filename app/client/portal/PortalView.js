@@ -1,4 +1,4 @@
-import { Anchor, Eye, Share2, Mail, Phone } from "lucide-react";
+import { Anchor, Eye, Share2, Mail, Phone, Printer, MapPin } from "lucide-react";
 import CourseLine from "@/components/CourseLine";
 import StageTag from "@/components/StageTag";
 import ClientSignOutButton from "@/components/ClientSignOutButton";
@@ -31,7 +31,19 @@ export default function PortalView({
   previewMode = false,
   closePreviewHref = "/bridge",
 }) {
-  const hasBrandingFooter = !!(agentBranding?.photoUrl || agentBranding?.logoUrl);
+  // reply-to email deliberately isn't part of this check — it already
+  // existed for a different purpose (routing email replies) before this
+  // feature, so its mere presence shouldn't silently opt an agent into a
+  // public-facing footer. It still shows as an extra line once one of
+  // these purpose-built fields has already opted them in.
+  const hasBrandingFooter = !!(
+    agentBranding?.photoUrl ||
+    agentBranding?.logoUrl ||
+    agentBranding?.officeAddress ||
+    agentBranding?.cellPhone ||
+    agentBranding?.officePhone ||
+    agentBranding?.faxNumber
+  );
   const mainContent = (
     <>
       {propertyPhotosWithLinks.length > 0 && (
@@ -298,7 +310,7 @@ export default function PortalView({
               />
             )}
 
-            {agentBranding.photoUrl && (agentBranding.fullName || agentBranding.email || agentBranding.phone) && (
+            {agentBranding.photoUrl && (agentBranding.fullName || agentBranding.email || agentBranding.cellPhone) && (
               <div
                 style={{
                   width: 2,
@@ -316,14 +328,29 @@ export default function PortalView({
                   {agentBranding.fullName}
                 </span>
               )}
-              {agentBranding.phone && (
+              {agentBranding.cellPhone && (
                 <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "var(--lh-slate)" }}>
-                  <Phone size={12} strokeWidth={1.75} /> {agentBranding.phone}
+                  <Phone size={12} strokeWidth={1.75} /> {agentBranding.cellPhone}
+                </span>
+              )}
+              {agentBranding.officePhone && (
+                <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "var(--lh-slate)" }}>
+                  <Phone size={12} strokeWidth={1.75} /> {agentBranding.officePhone} (office)
+                </span>
+              )}
+              {agentBranding.faxNumber && (
+                <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "var(--lh-slate)" }}>
+                  <Printer size={12} strokeWidth={1.75} /> {agentBranding.faxNumber} (fax)
                 </span>
               )}
               {agentBranding.email && (
                 <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "var(--lh-slate)" }}>
                   <Mail size={12} strokeWidth={1.75} /> {agentBranding.email}
+                </span>
+              )}
+              {agentBranding.officeAddress && (
+                <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "var(--lh-slate)" }}>
+                  <MapPin size={12} strokeWidth={1.75} /> {agentBranding.officeAddress}
                 </span>
               )}
             </div>

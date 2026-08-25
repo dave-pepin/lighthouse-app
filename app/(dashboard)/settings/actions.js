@@ -98,11 +98,14 @@ export async function setAgencyResourceImage(agencyId, field, path) {
   revalidatePath("/client/portal");
 }
 
-// An agent's own reply-to email — see add-agent-contact-migration.sql.
-// Uses the admin client (bypassing RLS) but scoped to the caller's own
-// verified id, the same "confirm identity, then mutate by id" pattern
-// setAgentAccess uses, since there's no established RLS policy yet for an
-// agent updating their own users row directly.
+// An agent's own reply-to email plus optional display-only contact
+// details (office address, cell/office phone, fax) shown on the client
+// portal branding footer — see add-agent-contact-migration.sql and
+// add-agent-contact-details-migration.sql. Uses the admin client
+// (bypassing RLS) but scoped to the caller's own verified id, the same
+// "confirm identity, then mutate by id" pattern setAgentAccess uses,
+// since there's no established RLS policy yet for an agent updating
+// their own users row directly.
 export async function updateAgentContactInfo(fields) {
   const supabase = await createClient();
 
@@ -118,6 +121,10 @@ export async function updateAgentContactInfo(fields) {
     .from("users")
     .update({
       reply_to_email: fields.replyToEmail?.trim() || null,
+      office_address: fields.officeAddress?.trim() || null,
+      cell_phone: fields.cellPhone?.trim() || null,
+      office_phone: fields.officePhone?.trim() || null,
+      fax_number: fields.faxNumber?.trim() || null,
     })
     .eq("id", user.id);
 
@@ -126,6 +133,7 @@ export async function updateAgentContactInfo(fields) {
   }
 
   revalidatePath("/settings");
+  revalidatePath("/client/portal");
 }
 
 const BRANDING_IMAGE_FIELDS = ["profile_photo_path", "logo_path"];
