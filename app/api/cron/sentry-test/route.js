@@ -5,8 +5,15 @@
 // Sentry dashboard.
 export async function GET() {
   const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
-  if (!dsn) {
-    return new Response("NEXT_PUBLIC_SENTRY_DSN is NOT set in this deployment's runtime.", { status: 200 });
-  }
-  throw new Error(`Lighthouse Sentry pipeline test — safe to ignore/resolve (DSN present: ${dsn.slice(0, 20)}...)`);
+  const knownGood = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  return new Response(
+    JSON.stringify({
+      dsnPresent: !!dsn,
+      dsnPrefix: dsn ? dsn.slice(0, 24) : null,
+      knownGoodPresent: !!knownGood,
+      vercelEnv: process.env.VERCEL_ENV || null,
+      nodeEnv: process.env.NODE_ENV || null,
+    }),
+    { status: 200, headers: { "Content-Type": "application/json" } }
+  );
 }
