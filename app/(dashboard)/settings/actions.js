@@ -198,6 +198,30 @@ export async function updateAgentBrandColor(color) {
   revalidatePath("/client/portal");
 }
 
+// Lets an agent hide their name from the branding footer — useful when
+// their logo already includes it. Defaults to true (shown) via the
+// column default, see add-agent-branding-show-name-migration.sql.
+export async function updateShowFooterName(show) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error("Not signed in.");
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin.from("users").update({ show_footer_name: !!show }).eq("id", user.id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/client/portal");
+}
+
 // How many days after a milestone's due date this agent wants to hear
 // about it in the overdue digest — null means "off" entirely. See
 // add-overdue-digest-threshold-migration.sql / lib/overdueDigest.js.

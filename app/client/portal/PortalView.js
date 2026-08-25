@@ -310,7 +310,8 @@ export default function PortalView({
               />
             )}
 
-            {agentBranding.photoUrl && (agentBranding.fullName || agentBranding.email || agentBranding.cellPhone) && (
+            {agentBranding.photoUrl &&
+              ((agentBranding.showName && agentBranding.fullName) || agentBranding.email || agentBranding.cellPhone) && (
               <div
                 style={{
                   width: 2,
@@ -323,7 +324,7 @@ export default function PortalView({
             )}
 
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              {agentBranding.fullName && (
+              {agentBranding.showName && agentBranding.fullName && (
                 <span className="lh-display" style={{ fontSize: 16.5, fontWeight: 600, color: "var(--lh-navy)" }}>
                   {agentBranding.fullName}
                 </span>

@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, ImagePlus, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { setAgentBrandingImage, updateAgentBrandColor } from "./actions";
+import { setAgentBrandingImage, updateAgentBrandColor, updateShowFooterName } from "./actions";
 
 const labelStyle = {
   fontSize: 13,
@@ -166,12 +166,27 @@ function BrandingImageSlot({ userId, field, url, label, round, onChanged }) {
   );
 }
 
-export default function AgentBrandingForm({ userId, photoUrl, logoUrl, brandColor }) {
+export default function AgentBrandingForm({ userId, photoUrl, logoUrl, brandColor, showFooterName }) {
   const router = useRouter();
   const [color, setColor] = useState(brandColor || "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+  const [showName, setShowName] = useState(showFooterName !== false);
+  const [savingShowName, setSavingShowName] = useState(false);
+
+  const handleToggleShowName = async (e) => {
+    const next = e.target.checked;
+    setShowName(next);
+    setSavingShowName(true);
+    try {
+      await updateShowFooterName(next);
+      router.refresh();
+    } catch {
+      setShowName(!next);
+    }
+    setSavingShowName(false);
+  };
 
   const handleSaveColor = async () => {
     setSaving(true);
@@ -216,6 +231,21 @@ export default function AgentBrandingForm({ userId, photoUrl, logoUrl, brandColo
             <BrandingImageSlot userId={userId} field="profile_photo_path" url={photoUrl} label="Your photo" round />
             <BrandingImageSlot userId={userId} field="logo_path" url={logoUrl} label="Your logo" />
           </div>
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 7,
+              fontSize: 12.5,
+              color: "var(--lh-slate)",
+              marginTop: 16,
+              cursor: "pointer",
+            }}
+          >
+            <input type="checkbox" checked={showName} onChange={handleToggleShowName} disabled={savingShowName} />
+            Show my name in the footer{" "}
+            <span style={{ color: "var(--lh-slate-light)" }}>(turn off if your logo already includes it)</span>
+          </label>
         </div>
 
         <div style={fieldGroupStyle}>
