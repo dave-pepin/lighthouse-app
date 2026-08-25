@@ -192,8 +192,12 @@ body {
 @media (max-width: 860px) {
   .lh-referral-mobile {
     display: block;
-    max-width: 420px;
+    width: 100%;
     margin: 0 auto 20px;
+  }
+
+  .lh-referral-mobile .lh-referral-title {
+    font-size: 16px;
   }
 }
 

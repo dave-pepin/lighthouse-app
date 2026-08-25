@@ -185,7 +185,7 @@ export default function PortalView({
         <div className="lh-referral-mobile">
           <ReferralCard
             icon={<Share2 size={17} color="var(--lh-teal)" strokeWidth={1.75} />}
-            title="Know someone buying or selling?"
+            title={`Know someone ${guideName} can help?`}
           >
             {referralNote}
           </ReferralCard>
@@ -284,7 +284,7 @@ export default function PortalView({
             <div className="lh-portal-sidebar">
               <ReferralCard
                 icon={<Share2 size={17} color="var(--lh-teal)" strokeWidth={1.75} />}
-                title="Know someone buying or selling?"
+                title={`Know someone ${guideName} can help?`}
               >
                 {referralNote}
               </ReferralCard>
