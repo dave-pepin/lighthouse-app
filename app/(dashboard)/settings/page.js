@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import SettingsForm from "./SettingsForm";
 import MilestoneVideoDefaults from "./MilestoneVideoDefaults";
 import AgentContactForm from "./AgentContactForm";
+import OverdueDigestForm from "./OverdueDigestForm";
 
 const IMAGE_FIELDS = [
   ["trusted_contractors_image", "trustedContractorsImageUrl"],
@@ -23,7 +24,7 @@ export default async function SettingsPage() {
 
   const { data: profile } = await supabase
     .from("users")
-    .select("agency_id, sms_phone_number, reply_to_email")
+    .select("agency_id, sms_phone_number, reply_to_email, overdue_digest_threshold_days")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -99,6 +100,10 @@ export default async function SettingsPage() {
           smsPhoneNumber={profile.sms_phone_number}
           replyToEmail={profile.reply_to_email}
         />
+      </div>
+
+      <div style={{ marginBottom: 40 }}>
+        <OverdueDigestForm thresholdDays={profile.overdue_digest_threshold_days} />
       </div>
 
       <SettingsForm agency={agency} imageUrls={imageUrls} />
