@@ -453,7 +453,11 @@ export async function requestDocument(journeyId, label) {
     .eq("id", journey.agent_id)
     .single();
 
-  const errors = await dispatchDocumentRequestNotice(request, journey, agentProfile);
+  const h = await headers();
+  const origin = `${h.get("x-forwarded-proto") || "http"}://${h.get("host")}`;
+  const portalUrl = `${origin}/client/portal?journey=${journeyId}`;
+
+  const errors = await dispatchDocumentRequestNotice(request, journey, agentProfile, portalUrl);
 
   revalidatePath(`/journey/${journeyId}`);
   return { request, errors };
