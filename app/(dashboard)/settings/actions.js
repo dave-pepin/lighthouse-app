@@ -128,6 +128,68 @@ export async function updateAgentContactInfo(fields) {
   revalidatePath("/settings");
 }
 
+const BRANDING_IMAGE_FIELDS = ["profile_photo_path", "logo_path"];
+
+// Records an agent's own uploaded photo or logo (or clears it, if path
+// is null) — see add-agent-branding-migration.sql. Same "confirm
+// identity, then mutate by id" pattern as updateAgentContactInfo above.
+export async function setAgentBrandingImage(field, path) {
+  if (!BRANDING_IMAGE_FIELDS.includes(field)) {
+    throw new Error("Invalid image field.");
+  }
+
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error("Not signed in.");
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("users")
+    .update({ [field]: path })
+    .eq("id", user.id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/client/portal");
+}
+
+// An agent's own optional brand color, shown as a thin accent on their
+// client portal footer — never a site-wide theme override (see
+// PortalView.js). Empty/null clears it back to no color.
+export async function updateAgentBrandColor(color) {
+  const trimmed = color?.trim() || null;
+  if (trimmed && !/^#[0-9a-fA-F]{6}$/.test(trimmed)) {
+    throw new Error("Enter a valid hex color, like #2F6F6B.");
+  }
+
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error("Not signed in.");
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin.from("users").update({ brand_color: trimmed }).eq("id", user.id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/client/portal");
+}
+
 // How many days after a milestone's due date this agent wants to hear
 // about it in the overdue digest — null means "off" entirely. See
 // add-overdue-digest-threshold-migration.sql / lib/overdueDigest.js.

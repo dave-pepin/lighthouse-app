@@ -26,10 +26,12 @@ export default function PortalView({
   referralNote,
   justArrived,
   pendingDocumentRequests = [],
+  agentBranding = null,
   hasMultipleJourneys = false,
   previewMode = false,
   closePreviewHref = "/bridge",
 }) {
+  const hasBrandingFooter = !!(agentBranding?.photoUrl || agentBranding?.logoUrl);
   const mainContent = (
     <>
       {propertyPhotosWithLinks.length > 0 && (
@@ -266,6 +268,44 @@ export default function PortalView({
           mainContent
         )}
       </div>
+
+      {hasBrandingFooter && (
+        <div
+          style={{
+            borderTop: `3px solid ${agentBranding.brandColor || "var(--lh-line)"}`,
+            background: "var(--lh-paper)",
+            padding: "20px 32px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 14,
+          }}
+        >
+          {agentBranding.photoUrl && (
+            <img
+              src={agentBranding.photoUrl}
+              alt={agentBranding.fullName || "Your agent"}
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: "50%",
+                objectFit: "cover",
+                border: "1px solid var(--lh-line)",
+              }}
+            />
+          )}
+          {agentBranding.logoUrl && (
+            <img
+              src={agentBranding.logoUrl}
+              alt=""
+              style={{ height: 36, width: "auto", maxWidth: 160, objectFit: "contain" }}
+            />
+          )}
+          {agentBranding.fullName && (
+            <span style={{ fontSize: 12.5, color: "var(--lh-slate)" }}>{agentBranding.fullName}</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
