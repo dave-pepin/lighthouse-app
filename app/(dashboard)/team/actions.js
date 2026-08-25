@@ -2,7 +2,40 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createAgentLogin } from "@/lib/agentInvite";
 import { revalidatePath } from "next/cache";
+
+// Lets any agent add a teammate to their own agency — no agency id is
+// ever taken from the client here, it's read straight off the caller's
+// own users row, so there's no cross-agency parameter to forge (simpler
+// than the "verify then admin-write" pattern setAgentAccess below needs,
+// since that one does take another agent's id as an argument).
+export async function inviteTeamMember(fullName, email) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error("Not signed in.");
+  }
+
+  const trimmedName = fullName?.trim();
+  const trimmedEmail = email?.trim();
+  if (!trimmedName || !trimmedEmail) {
+    throw new Error("Name and email are both required.");
+  }
+
+  const { data: profile } = await supabase.from("users").select("agency_id").eq("id", user.id).maybeSingle();
+  if (!profile?.agency_id) {
+    throw new Error("Couldn't find your agency.");
+  }
+
+  const admin = createAdminClient();
+  await createAgentLogin(admin, { agencyId: profile.agency_id, fullName: trimmedName, email: trimmedEmail });
+
+  revalidatePath("/team");
+}
 
 // Same "no real permanent option" workaround used for client access —
 // see setClientAccess in journey/[id]/actions.js.
