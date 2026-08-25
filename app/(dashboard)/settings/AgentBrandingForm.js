@@ -261,7 +261,7 @@ export default function AgentBrandingForm({
         it out entirely.
       </p>
       <div style={{ display: "flex", gap: 24, alignItems: "flex-start", flexWrap: "wrap" }}>
-        <div style={{ flex: "2 1 480px", minWidth: 0, display: "flex", flexDirection: "column", gap: 18 }}>
+        <div style={{ flex: "1 1 380px", minWidth: 0, display: "flex", flexDirection: "column", gap: 18 }}>
           <div style={fieldGroupStyle}>
             <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
               <BrandingImageSlot userId={userId} field="profile_photo_path" url={photoUrl} label="Your photo" round />
@@ -328,11 +328,14 @@ export default function AgentBrandingForm({
           </div>
         </div>
 
-        {/* Wide enough that the real footer's photo/divider/text/logo row
-            doesn't wrap here the way it would in a cramped box — wrapping
-            in this preview would misrepresent how it actually looks on
-            the (much wider) real portal page. */}
-        <div style={{ flex: "3 1 460px", minWidth: 340, alignSelf: "stretch" }}>
+        {/* flexShrink: 0 + a real minWidth — this box must never get
+            squeezed by the left column, or the real footer's photo/
+            divider/text/logo row wraps here in a way it wouldn't on the
+            actual (much wider, sidebar-free) portal page, misrepresenting
+            the real layout. If the window's too narrow for both columns
+            side by side, this drops to its own full-width row below
+            instead of shrinking. */}
+        <div style={{ flexGrow: 1, flexShrink: 0, flexBasis: 500, minWidth: 500, alignSelf: "stretch" }}>
           <label style={{ ...labelStyle, marginBottom: 8 }}>Preview</label>
           <div
             style={{
