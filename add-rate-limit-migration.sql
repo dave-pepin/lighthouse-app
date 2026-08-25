@@ -10,6 +10,12 @@ create table if not exists rate_limit_hits (
   primary key (key, window_start)
 );
 
+-- Only ever touched via the admin (service-role) client, which bypasses
+-- RLS entirely — this just makes sure the anon/authenticated keys used
+-- by regular clients have no path to this table at all, direct or via
+-- the RPC below.
+alter table rate_limit_hits enable row level security;
+
 create or replace function check_rate_limit(p_key text, p_limit integer, p_window_seconds integer)
 returns boolean
 language plpgsql
@@ -33,3 +39,9 @@ begin
   return v_count <= p_limit;
 end;
 $$;
+
+-- security definer functions are granted to PUBLIC by default — revoke
+-- that so only the service-role (admin) client this app actually uses
+-- can call it, not every anon/authenticated visitor over the API.
+revoke execute on function check_rate_limit(text, integer, integer) from public, anon, authenticated;
+grant execute on function check_rate_limit(text, integer, integer) to service_role;
