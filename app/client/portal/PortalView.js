@@ -4,7 +4,8 @@ import StageTag from "@/components/StageTag";
 import ClientSignOutButton from "@/components/ClientSignOutButton";
 import AgentBrandingFooter, { hasAgentBranding } from "@/components/AgentBrandingFooter";
 import ClientMilestoneList from "./ClientMilestoneList";
-import HarborSection, { ResourceCard } from "./HarborSection";
+import HarborSection from "./HarborSection";
+import ReferralCard from "./ReferralCard";
 import TrackedDocumentLink from "./TrackedDocumentLink";
 import RequestedDocumentUpload from "./RequestedDocumentUpload";
 
@@ -133,6 +134,15 @@ export default function PortalView({
         />
       </section>
 
+      {/* Mobile-only — see .lh-branding-inline / .lh-branding-footer-bar
+          in globals.css. On desktop this stays as the full-width bar at
+          the very bottom of the page instead. */}
+      {hasBrandingFooter && (
+        <div className="lh-branding-inline">
+          <AgentBrandingFooter agentBranding={agentBranding} />
+        </div>
+      )}
+
       {pendingDocumentRequests.length > 0 && (
         <section
           style={{
@@ -257,12 +267,12 @@ export default function PortalView({
           <div className="lh-portal-layout">
             <div className="lh-portal-main">{mainContent}</div>
             <div className="lh-portal-sidebar">
-              <ResourceCard
+              <ReferralCard
                 icon={<Share2 size={17} color="var(--lh-teal)" strokeWidth={1.75} />}
                 title="Know someone buying or selling?"
               >
                 {referralNote}
-              </ResourceCard>
+              </ReferralCard>
             </div>
           </div>
         ) : (
@@ -272,11 +282,11 @@ export default function PortalView({
 
       {hasBrandingFooter && (
         <div
+          className="lh-branding-footer-bar"
           style={{
             borderTop: "1px solid var(--lh-line)",
             background: "var(--lh-paper)",
             padding: "26px 32px",
-            display: "flex",
             alignItems: "center",
             justifyContent: "center",
           }}
