@@ -15,7 +15,7 @@ export default async function JourneyDetailPage({ params }) {
 
   if (!journey) notFound();
 
-  const [{ data: milestones }, { data: documents }, { data: weeklyUpdates }, { data: videoLibrary }] =
+  const [{ data: milestones }, { data: documents }, { data: weeklyUpdates }, { data: videoLibrary }, { data: documentRequests }] =
     await Promise.all([
       supabase
         .from("milestones")
@@ -40,6 +40,11 @@ export default async function JourneyDetailPage({ params }) {
         .from("videos")
         .select("id, title, storage_path")
         .order("created_at", { ascending: false }),
+      supabase
+        .from("document_requests")
+        .select("id, label, status, requested_at")
+        .eq("journey_id", id)
+        .order("requested_at", { ascending: false }),
     ]);
 
   const latestUpdate = weeklyUpdates?.[0] || null;
@@ -111,6 +116,7 @@ export default async function JourneyDetailPage({ params }) {
       latestUpdate={latestUpdate}
       videoLibrary={videoLibrary || []}
       clientAccess={clientAccess}
+      documentRequests={documentRequests || []}
     />
   );
 }

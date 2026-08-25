@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { sendUpdateSms, sendInviteEmail, sendInviteSms } from "@/lib/notify";
 import { dispatchWeeklyUpdate } from "@/lib/weeklyUpdateSend";
+import { dispatchDocumentRequestNotice } from "@/lib/documentRequestNotify";
 import { toE164 } from "@/lib/phone";
 import { stagesForRole } from "@/components/CourseLine";
 import { generateText } from "@/lib/openai";
@@ -394,6 +395,106 @@ export async function deleteDocument(documentId, journeyId) {
   }
 
   const { error } = await supabase.from("documents").delete().eq("id", documentId);
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath(`/journey/${journeyId}`);
+}
+
+// Asks a client for a specific document, and notifies them right away
+// (email/text, per their update_preference) — see
+// lib/documentRequestNotify.js for the actual message dispatch. Uses the
+// verify-then-admin-write pattern (like deleteDocument below): the
+// RLS-scoped client confirms the signed-in agent can see this Journey,
+// then the admin client performs the actual write, since
+// document_requests intentionally has no INSERT/UPDATE policies of its
+// own (see add-document-requests-migration.sql).
+export async function requestDocument(journeyId, label) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error("Not signed in.");
+  }
+
+  const trimmedLabel = label?.trim();
+  if (!trimmedLabel) {
+    throw new Error("A document label is required.");
+  }
+
+  const { data: journey } = await supabase
+    .from("journeys")
+    .select("client_email, client_email_2, client_phone, client_phone_2, update_preference, agent_id, client_user_id")
+    .eq("id", journeyId)
+    .single();
+  if (!journey) {
+    throw new Error("Couldn't find that Journey.");
+  }
+  if (!journey.client_user_id) {
+    throw new Error("Invite this client to their portal first — they won't be able to see or fulfill a request until then.");
+  }
+
+  const admin = createAdminClient();
+  const { data: request, error } = await admin
+    .from("document_requests")
+    .insert({ journey_id: journeyId, label: trimmedLabel, requested_by: user.id })
+    .select()
+    .single();
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const { data: agentProfile } = await supabase
+    .from("users")
+    .select("full_name, sms_phone_number, reply_to_email")
+    .eq("id", journey.agent_id)
+    .single();
+
+  const errors = await dispatchDocumentRequestNotice(request, journey, agentProfile);
+
+  revalidatePath(`/journey/${journeyId}`);
+  return { request, errors };
+}
+
+// Cancels a request that hasn't been fulfilled yet — the client simply
+// stops seeing it on their portal. Doesn't touch a request that's already
+// been fulfilled (there'd be a document tied to it by then).
+export async function cancelDocumentRequest(requestId, journeyId) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error("Not signed in.");
+  }
+
+  // Confirms the calling agent can actually see this Journey today
+  // (existing agent-facing RLS on `journeys` already scopes this) before
+  // touching the request with the admin client.
+  const { data: journey } = await supabase.from("journeys").select("id").eq("id", journeyId).single();
+  if (!journey) {
+    throw new Error("Couldn't find that Journey.");
+  }
+
+  const admin = createAdminClient();
+  const { data: request } = await admin
+    .from("document_requests")
+    .select("id, status")
+    .eq("id", requestId)
+    .eq("journey_id", journeyId)
+    .maybeSingle();
+  if (!request) {
+    throw new Error("Couldn't find that request.");
+  }
+  if (request.status !== "pending") {
+    throw new Error("This request has already been fulfilled.");
+  }
+
+  const { error } = await admin.from("document_requests").update({ status: "cancelled" }).eq("id", requestId);
   if (error) {
     throw new Error(error.message);
   }
