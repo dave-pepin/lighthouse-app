@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, ImagePlus, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import AgentBrandingFooter from "@/components/AgentBrandingFooter";
 import { setAgentBrandingImage, updateAgentBrandColor, updateShowFooterName } from "./actions";
 
 const labelStyle = {
@@ -166,7 +167,19 @@ function BrandingImageSlot({ userId, field, url, label, round, onChanged }) {
   );
 }
 
-export default function AgentBrandingForm({ userId, photoUrl, logoUrl, brandColor, showFooterName }) {
+export default function AgentBrandingForm({
+  userId,
+  photoUrl,
+  logoUrl,
+  brandColor,
+  showFooterName,
+  fullName,
+  email,
+  officeAddress,
+  cellPhone,
+  officePhone,
+  faxNumber,
+}) {
   const router = useRouter();
   const [color, setColor] = useState(brandColor || "");
   const [saving, setSaving] = useState(false);
@@ -216,6 +229,26 @@ export default function AgentBrandingForm({ userId, photoUrl, logoUrl, brandColo
     setSaving(false);
   };
 
+  // Live preview, fed by the exact same rendering component the real
+  // portal footer uses (AgentBrandingFooter) — photo/logo update once
+  // uploaded (router.refresh() picks up the fresh signed URL), color and
+  // the show-name toggle update immediately from local state, even
+  // before Save is clicked. Contact fields (email/address/phones) come
+  // from AgentContactForm's own saved data, passed down as read-only
+  // props here — this preview doesn't edit those.
+  const previewBranding = {
+    photoUrl,
+    logoUrl,
+    brandColor: color || null,
+    fullName,
+    showName,
+    email,
+    officeAddress,
+    cellPhone,
+    officePhone,
+    faxNumber,
+  };
+
   return (
     <div>
       <h2 className="lh-display" style={{ fontSize: 20, fontWeight: 600, margin: "0 0 4px" }}>
@@ -227,25 +260,53 @@ export default function AgentBrandingForm({ userId, photoUrl, logoUrl, brandColo
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
         <div style={fieldGroupStyle}>
-          <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-            <BrandingImageSlot userId={userId} field="profile_photo_path" url={photoUrl} label="Your photo" round />
-            <BrandingImageSlot userId={userId} field="logo_path" url={logoUrl} label="Your logo" />
+          <div style={{ display: "flex", gap: 24, flexWrap: "wrap", alignItems: "flex-start" }}>
+            <div style={{ flex: "1 1 280px" }}>
+              <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
+                <BrandingImageSlot userId={userId} field="profile_photo_path" url={photoUrl} label="Your photo" round />
+                <BrandingImageSlot userId={userId} field="logo_path" url={logoUrl} label="Your logo" />
+              </div>
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 7,
+                  fontSize: 12.5,
+                  color: "var(--lh-slate)",
+                  marginTop: 16,
+                  cursor: "pointer",
+                }}
+              >
+                <input type="checkbox" checked={showName} onChange={handleToggleShowName} disabled={savingShowName} />
+                Show my name in the footer{" "}
+                <span style={{ color: "var(--lh-slate-light)" }}>(turn off if your logo already includes it)</span>
+              </label>
+            </div>
+
+            <div style={{ flex: "1 1 260px", minWidth: 0 }}>
+              <label style={{ ...labelStyle, marginBottom: 8 }}>Preview</label>
+              <div
+                style={{
+                  background: "var(--lh-fog)",
+                  border: "1px solid var(--lh-line)",
+                  borderRadius: 10,
+                  padding: "18px 14px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minHeight: 100,
+                }}
+              >
+                {photoUrl || logoUrl || email || officeAddress || cellPhone || officePhone || faxNumber ? (
+                  <AgentBrandingFooter agentBranding={previewBranding} />
+                ) : (
+                  <span style={{ fontSize: 12.5, color: "var(--lh-slate-light)" }}>
+                    Nothing set yet — add a photo, logo, or contact detail to see a preview.
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 7,
-              fontSize: 12.5,
-              color: "var(--lh-slate)",
-              marginTop: 16,
-              cursor: "pointer",
-            }}
-          >
-            <input type="checkbox" checked={showName} onChange={handleToggleShowName} disabled={savingShowName} />
-            Show my name in the footer{" "}
-            <span style={{ color: "var(--lh-slate-light)" }}>(turn off if your logo already includes it)</span>
-          </label>
         </div>
 
         <div style={fieldGroupStyle}>
