@@ -2194,6 +2194,8 @@ export default function JourneyDetailClient({ journey, milestones, documents, la
             <div style={{ display: "flex", gap: 8 }}>
               <button
                 onClick={() => setRequestingDocument((cur) => !cur)}
+                disabled={!journey.client_user_id}
+                title={!journey.client_user_id ? "Invite this client to their portal first" : undefined}
                 className="lh-focus"
                 style={{
                   display: "flex",
@@ -2205,7 +2207,8 @@ export default function JourneyDetailClient({ journey, milestones, documents, la
                   padding: "5px 9px",
                   fontSize: 12,
                   color: "var(--lh-slate)",
-                  cursor: "pointer",
+                  cursor: journey.client_user_id ? "pointer" : "default",
+                  opacity: journey.client_user_id ? 1 : 0.5,
                 }}
               >
                 <Bell size={12} /> Request
@@ -2294,11 +2297,6 @@ export default function JourneyDetailClient({ journey, milestones, documents, la
                   Cancel
                 </button>
               </div>
-              {!journey.client_user_id && (
-                <div style={{ fontSize: 11.5, color: "var(--lh-slate-light)" }}>
-                  Invite this client to their portal first — they need a login to see or fulfill a request.
-                </div>
-              )}
             </div>
           )}
 
