@@ -150,8 +150,9 @@ body {
 /* Client portal's main content + persistent referral sidebar. The
    sidebar stays sticky alongside the main column on desktop so it's
    visible throughout the scroll, not just once at the top; below 860px
-   it stacks above the main content instead (a sticky sidebar makes no
-   sense once there's no side-by-side room left). */
+   it stacks below the main content instead (a sticky sidebar makes no
+   sense once there's no side-by-side room left, and a full-height card
+   at the very top of the page just pushed everything else down). */
 .lh-portal-layout {
   display: flex;
   gap: 28px;
@@ -176,9 +177,117 @@ body {
   }
 
   .lh-portal-sidebar {
-    width: 100%;
-    position: static;
-    order: -1;
+    display: none;
+  }
+}
+
+/* Mobile-only duplicate of the referral card (see .lh-portal-sidebar
+   above, hidden on mobile) so it can sit at the bottom of the page,
+   centered, directly above the branding footer instead of alongside the
+   main content. */
+.lh-referral-mobile {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .lh-referral-mobile {
+    display: block;
+    max-width: 420px;
+    margin: 0 auto 20px;
+  }
+}
+
+/* ReferralCard: a CSS-only collapsible (checkbox + label + sibling
+   selector, no JS). Outside the mobile media query below, none of the
+   collapse rules exist at all, so desktop always shows it fully
+   expanded exactly like a plain static card — only mobile gets the
+   tap-to-expand behavior. */
+.lh-referral-card {
+  background: var(--lh-fog);
+  border: 1px solid var(--lh-line);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.lh-referral-checkbox {
+  display: none;
+}
+
+.lh-referral-label {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin: 0;
+}
+
+.lh-referral-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--lh-navy);
+  flex: 1;
+}
+
+.lh-referral-chevron {
+  display: none;
+  color: var(--lh-slate);
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.lh-referral-content {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--lh-navy-soft);
+  white-space: pre-line;
+  margin-top: 10px;
+  padding-left: 27px;
+}
+
+@media (max-width: 860px) {
+  .lh-referral-label {
+    cursor: pointer;
+  }
+
+  .lh-referral-chevron {
+    display: block;
+  }
+
+  .lh-referral-content {
+    display: none;
+    padding-left: 0;
+  }
+
+  .lh-referral-checkbox:checked ~ .lh-referral-content {
+    display: block;
+  }
+
+  .lh-referral-checkbox:checked ~ .lh-referral-label .lh-referral-chevron {
+    transform: rotate(180deg);
+  }
+}
+
+/* Agent branding footer: rendered twice in the client portal (once
+   inline under the milestones, once as the full-width bar at the very
+   bottom of the page) so it can sit in a different place on mobile
+   without needing JS to detect viewport size — only one copy is ever
+   actually visible at a given width. */
+.lh-branding-inline {
+  display: none;
+}
+
+.lh-branding-footer-bar {
+  display: flex;
+}
+
+@media (max-width: 860px) {
+  .lh-branding-inline {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  .lh-branding-footer-bar {
+    display: none;
   }
 }
 
