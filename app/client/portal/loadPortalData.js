@@ -84,11 +84,38 @@ export async function loadPortalData(supabase, admin, journey, { previewMode = f
   // this lookup.
   const { data: agentProfile } = await admin
     .from("users")
-    .select("full_name, agency_id")
+    .select(
+      "full_name, agency_id, profile_photo_path, logo_path, brand_color, reply_to_email, office_address, cell_phone, office_phone, fax_number, show_footer_name"
+    )
     .eq("id", journey.agent_id)
     .maybeSingle();
 
   guideName = agentProfile?.full_name || "Your Guide";
+
+  // Independently optional — an agent can set none, some, or all of
+  // these. The footer itself (PortalView) only renders when a photo or
+  // logo is actually present.
+  const [brandingPhotoSigned, brandingLogoSigned] = await Promise.all([
+    agentProfile?.profile_photo_path
+      ? admin.storage.from("agent-branding").createSignedUrl(agentProfile.profile_photo_path, 60 * 60)
+      : Promise.resolve({ data: null }),
+    agentProfile?.logo_path
+      ? admin.storage.from("agent-branding").createSignedUrl(agentProfile.logo_path, 60 * 60)
+      : Promise.resolve({ data: null }),
+  ]);
+
+  const agentBranding = {
+    photoUrl: brandingPhotoSigned.data?.signedUrl || null,
+    logoUrl: brandingLogoSigned.data?.signedUrl || null,
+    brandColor: agentProfile?.brand_color || null,
+    fullName: guideName,
+    showName: agentProfile?.show_footer_name !== false,
+    email: agentProfile?.reply_to_email || null,
+    officeAddress: agentProfile?.office_address || null,
+    cellPhone: agentProfile?.cell_phone || null,
+    officePhone: agentProfile?.office_phone || null,
+    faxNumber: agentProfile?.fax_number || null,
+  };
 
   if (agentProfile?.agency_id) {
     const { data: agency } = await admin
@@ -171,5 +198,6 @@ export async function loadPortalData(supabase, admin, journey, { previewMode = f
     referralNote,
     justArrived,
     pendingDocumentRequests: documentRequests || [],
+    agentBranding,
   };
 }

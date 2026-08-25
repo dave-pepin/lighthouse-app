@@ -5,6 +5,7 @@ import SettingsForm from "./SettingsForm";
 import MilestoneVideoDefaults from "./MilestoneVideoDefaults";
 import AgentContactForm from "./AgentContactForm";
 import OverdueDigestForm from "./OverdueDigestForm";
+import AgentBrandingForm from "./AgentBrandingForm";
 
 const IMAGE_FIELDS = [
   ["trusted_contractors_image", "trustedContractorsImageUrl"],
@@ -24,7 +25,9 @@ export default async function SettingsPage() {
 
   const { data: profile } = await supabase
     .from("users")
-    .select("agency_id, sms_phone_number, reply_to_email, overdue_digest_threshold_days")
+    .select(
+      "full_name, agency_id, sms_phone_number, reply_to_email, overdue_digest_threshold_days, profile_photo_path, logo_path, brand_color, office_address, cell_phone, office_phone, fax_number, show_footer_name"
+    )
     .eq("id", user.id)
     .maybeSingle();
 
@@ -41,6 +44,17 @@ export default async function SettingsPage() {
   // admin client.
   const admin = createAdminClient();
   const imageUrls = {};
+
+  const [brandingPhotoSigned, brandingLogoSigned] = await Promise.all([
+    profile.profile_photo_path
+      ? admin.storage.from("agent-branding").createSignedUrl(profile.profile_photo_path, 60 * 60)
+      : Promise.resolve({ data: null }),
+    profile.logo_path
+      ? admin.storage.from("agent-branding").createSignedUrl(profile.logo_path, 60 * 60)
+      : Promise.resolve({ data: null }),
+  ]);
+  const brandingPhotoUrl = brandingPhotoSigned.data?.signedUrl || null;
+  const brandingLogoUrl = brandingLogoSigned.data?.signedUrl || null;
   if (agency) {
     await Promise.all(
       IMAGE_FIELDS.map(async ([column, key]) => {
@@ -107,10 +121,30 @@ export default async function SettingsPage() {
           <AgentContactForm
             smsPhoneNumber={profile.sms_phone_number}
             replyToEmail={profile.reply_to_email}
+            officeAddress={profile.office_address}
+            cellPhone={profile.cell_phone}
+            officePhone={profile.office_phone}
+            faxNumber={profile.fax_number}
           />
         </div>
 
         <OverdueDigestForm thresholdDays={profile.overdue_digest_threshold_days} />
+      </div>
+
+      <div style={{ marginBottom: 40 }}>
+        <AgentBrandingForm
+          userId={user.id}
+          photoUrl={brandingPhotoUrl}
+          logoUrl={brandingLogoUrl}
+          brandColor={profile.brand_color}
+          showFooterName={profile.show_footer_name}
+          fullName={profile.full_name}
+          email={profile.reply_to_email}
+          officeAddress={profile.office_address}
+          cellPhone={profile.cell_phone}
+          officePhone={profile.office_phone}
+          faxNumber={profile.fax_number}
+        />
       </div>
 
       <SettingsForm agency={agency} imageUrls={imageUrls} />

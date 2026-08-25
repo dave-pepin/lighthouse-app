@@ -2,6 +2,7 @@ import { Anchor, Eye, Share2 } from "lucide-react";
 import CourseLine from "@/components/CourseLine";
 import StageTag from "@/components/StageTag";
 import ClientSignOutButton from "@/components/ClientSignOutButton";
+import AgentBrandingFooter, { hasAgentBranding } from "@/components/AgentBrandingFooter";
 import ClientMilestoneList from "./ClientMilestoneList";
 import HarborSection, { ResourceCard } from "./HarborSection";
 import TrackedDocumentLink from "./TrackedDocumentLink";
@@ -26,10 +27,12 @@ export default function PortalView({
   referralNote,
   justArrived,
   pendingDocumentRequests = [],
+  agentBranding = null,
   hasMultipleJourneys = false,
   previewMode = false,
   closePreviewHref = "/bridge",
 }) {
+  const hasBrandingFooter = hasAgentBranding(agentBranding);
   const mainContent = (
     <>
       {propertyPhotosWithLinks.length > 0 && (
@@ -266,6 +269,21 @@ export default function PortalView({
           mainContent
         )}
       </div>
+
+      {hasBrandingFooter && (
+        <div
+          style={{
+            borderTop: "1px solid var(--lh-line)",
+            background: "var(--lh-paper)",
+            padding: "26px 32px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <AgentBrandingFooter agentBranding={agentBranding} />
+        </div>
+      )}
     </div>
   );
 }
