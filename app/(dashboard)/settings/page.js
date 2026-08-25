@@ -79,7 +79,7 @@ export default async function SettingsPage() {
   }
 
   return (
-    <div style={{ maxWidth: 640, margin: "0 auto", padding: "36px 32px 60px" }}>
+    <div style={{ maxWidth: 1040, margin: "0 auto", padding: "36px 32px 60px" }}>
       <h1 className="lh-display" style={{ fontSize: 26, fontWeight: 600, margin: "0 0 4px" }}>
         Settings
       </h1>
@@ -88,21 +88,28 @@ export default async function SettingsPage() {
         homeowner section every client sees once their Journey closes.
       </p>
 
-      <div style={{ marginBottom: 40 }}>
-        <h2 className="lh-display" style={{ fontSize: 20, fontWeight: 600, margin: "0 0 4px" }}>
-          Your Contact Info
-        </h2>
-        <p style={{ fontSize: 14, color: "var(--lh-slate)", marginBottom: 20 }}>
-          Controls what your clients see updates come from — a phone number your texts appear to
-          come from, and where their email replies land.
-        </p>
-        <AgentContactForm
-          smsPhoneNumber={profile.sms_phone_number}
-          replyToEmail={profile.reply_to_email}
-        />
-      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))",
+          gap: 24,
+          marginBottom: 40,
+        }}
+      >
+        <div>
+          <h2 className="lh-display" style={{ fontSize: 20, fontWeight: 600, margin: "0 0 4px" }}>
+            Your Contact Info
+          </h2>
+          <p style={{ fontSize: 14, color: "var(--lh-slate)", marginBottom: 20 }}>
+            Controls what your clients see updates come from — a phone number your texts appear to
+            come from, and where their email replies land.
+          </p>
+          <AgentContactForm
+            smsPhoneNumber={profile.sms_phone_number}
+            replyToEmail={profile.reply_to_email}
+          />
+        </div>
 
-      <div style={{ marginBottom: 40 }}>
         <OverdueDigestForm thresholdDays={profile.overdue_digest_threshold_days} />
       </div>
 
