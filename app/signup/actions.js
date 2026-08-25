@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { stripe } from "@/lib/stripe";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { clientIp, checkRateLimit } from "@/lib/rateLimit";
 
 // Starts a paid signup: collects the agent's basic info, then hands off
 // to Stripe Checkout to actually take payment. The agency + login don't
@@ -21,6 +22,12 @@ export async function startAgentCheckout(formData) {
 
   if (!process.env.STRIPE_PRICE_ID) {
     throw new Error("Billing isn't set up yet — check back soon.");
+  }
+
+  const h = await headers();
+  const ip = clientIp(h);
+  if (!(await checkRateLimit(`signup:${ip}`, { limit: 5, windowSeconds: 600 }))) {
+    throw new Error("Too many signup attempts. Please try again in a few minutes.");
   }
 
   const admin = createAdminClient();
@@ -44,7 +51,6 @@ export async function startAgentCheckout(formData) {
   const customer =
     existingCustomers.data[0] || (await stripe.customers.create({ email, name: fullName }));
 
-  const h = await headers();
   const origin = `${h.get("x-forwarded-proto") || "http"}://${h.get("host")}`;
 
   const session = await stripe.checkout.sessions.create({

@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
+import { clientIp, checkRateLimit } from "@/lib/rateLimit";
 
 // Short invite links (lighthouse.davepepin.com/i/xxxxxxx) resolve here.
 //
@@ -33,6 +34,15 @@ import { NextResponse } from "next/server";
 // RLS policies for anon/authenticated access anyway.
 export async function GET(request, { params }) {
   const { code } = await params;
+
+  // A rate-limited request gets the exact same fallback as an unknown
+  // code — an attacker probing for valid codes shouldn't be able to tell
+  // "wrong code" from "you're being throttled" from the response alone.
+  const ip = clientIp(request.headers);
+  if (!(await checkRateLimit(`short-link:${ip}`, { limit: 20, windowSeconds: 60 }))) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
   const admin = createAdminClient();
 
   const { data } = await admin
@@ -83,6 +93,13 @@ export async function GET(request, { params }) {
 // rather than resubmitting the POST.
 export async function POST(request, { params }) {
   const { code } = await params;
+
+  // Same fallback-looks-identical reasoning as GET above.
+  const ip = clientIp(request.headers);
+  if (!(await checkRateLimit(`short-link:${ip}`, { limit: 20, windowSeconds: 60 }))) {
+    return NextResponse.redirect(new URL("/login", request.url), 303);
+  }
+
   const admin = createAdminClient();
 
   const { data } = await admin
