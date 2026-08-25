@@ -134,15 +134,6 @@ export default function PortalView({
         />
       </section>
 
-      {/* Mobile-only — see .lh-branding-inline / .lh-branding-footer-bar
-          in globals.css. On desktop this stays as the full-width bar at
-          the very bottom of the page instead. */}
-      {hasBrandingFooter && (
-        <div className="lh-branding-inline">
-          <AgentBrandingFooter agentBranding={agentBranding} />
-        </div>
-      )}
-
       {pendingDocumentRequests.length > 0 && (
         <section
           style={{
@@ -184,6 +175,30 @@ export default function PortalView({
               ))}
           </div>
         </section>
+      )}
+
+      {/* Mobile-only duplicate of the sidebar referral card — see
+          .lh-referral-mobile / .lh-portal-sidebar in globals.css. Sits
+          directly above the branding footer at the bottom of the page on
+          mobile; desktop keeps the original in the sticky sidebar instead. */}
+      {referralNote && (
+        <div className="lh-referral-mobile">
+          <ReferralCard
+            icon={<Share2 size={17} color="var(--lh-teal)" strokeWidth={1.75} />}
+            title="Know someone buying or selling?"
+          >
+            {referralNote}
+          </ReferralCard>
+        </div>
+      )}
+
+      {/* Mobile-only — see .lh-branding-inline / .lh-branding-footer-bar
+          in globals.css. On desktop this stays as the full-width bar at
+          the very bottom of the page instead. */}
+      {hasBrandingFooter && (
+        <div className="lh-branding-inline">
+          <AgentBrandingFooter agentBranding={agentBranding} />
+        </div>
       )}
     </>
   );

@@ -177,8 +177,23 @@ body {
   }
 
   .lh-portal-sidebar {
-    width: 100%;
-    position: static;
+    display: none;
+  }
+}
+
+/* Mobile-only duplicate of the referral card (see .lh-portal-sidebar
+   above, hidden on mobile) so it can sit at the bottom of the page,
+   centered, directly above the branding footer instead of alongside the
+   main content. */
+.lh-referral-mobile {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .lh-referral-mobile {
+    display: block;
+    max-width: 420px;
+    margin: 0 auto 20px;
   }
 }
 
