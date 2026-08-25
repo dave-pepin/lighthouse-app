@@ -192,6 +192,7 @@ export default function SettingsForm({ agency, imageUrls = {} }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))", gap: 18 }}>
       <div style={fieldGroupStyle}>
         <label style={labelStyle}>Your voice, for AI-suggested messages</label>
         <p style={helpStyle}>
@@ -306,6 +307,7 @@ export default function SettingsForm({ agency, imageUrls = {} }) {
           field="home_value_image"
           url={imageUrls.homeValueImageUrl}
         />
+      </div>
       </div>
 
       {error && <div style={{ fontSize: 13, color: "#B4472A" }}>{error}</div>}
