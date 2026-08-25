@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Phone } from "lucide-react";
 import { updateAgentContactInfo, provisionMyPhoneNumber, releaseMyPhoneNumber } from "./actions";
+import { formatUSPhoneInput } from "@/lib/phone";
 
 const labelStyle = {
   fontSize: 13,
@@ -272,7 +273,7 @@ export default function AgentContactForm({
               <input
                 type="tel"
                 value={cell}
-                onChange={(e) => setCell(e.target.value)}
+                onChange={(e) => setCell(formatUSPhoneInput(e.target.value))}
                 className="lh-focus"
                 style={inputStyle}
                 placeholder="555-123-4567"
@@ -285,7 +286,7 @@ export default function AgentContactForm({
               <input
                 type="tel"
                 value={office}
-                onChange={(e) => setOffice(e.target.value)}
+                onChange={(e) => setOffice(formatUSPhoneInput(e.target.value))}
                 className="lh-focus"
                 style={inputStyle}
                 placeholder="555-123-4567"
@@ -299,7 +300,7 @@ export default function AgentContactForm({
             <input
               type="tel"
               value={fax}
-              onChange={(e) => setFax(e.target.value)}
+              onChange={(e) => setFax(formatUSPhoneInput(e.target.value))}
               className="lh-focus"
               style={{ ...inputStyle, maxWidth: 220 }}
               placeholder="555-123-4567"
