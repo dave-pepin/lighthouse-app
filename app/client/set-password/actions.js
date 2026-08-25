@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import * as Sentry from "@sentry/nextjs";
 import { sendAgentEmail } from "@/lib/notify";
 
 // Called right after a client successfully sets their portal password for
@@ -54,9 +55,10 @@ export async function notifyClientActivated() {
           subject: `${journey.client_name} just set up their Lighthouse portal`,
           message: `${journey.client_name} just finished setting up their portal login. You can check in on their Journey anytime from your Bridge.`,
         });
-      } catch {
+      } catch (err) {
         // Best-effort — the activation itself already succeeded and got
         // recorded above; a failed notification email shouldn't undo that.
+        Sentry.captureException(err);
       }
     }
   }

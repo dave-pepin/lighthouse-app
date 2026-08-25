@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendAgentEmail } from "@/lib/notify";
 import { findOverdueDigestRecipients, buildDigestMessage } from "@/lib/overdueDigest";
@@ -75,6 +76,7 @@ export async function GET(request) {
     } catch (err) {
       failed++;
       details.push({ agentId: recipient.agentId, error: err.message });
+      Sentry.captureException(err);
     }
   }
 

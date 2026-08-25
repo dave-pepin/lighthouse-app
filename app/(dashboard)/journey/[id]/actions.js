@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import * as Sentry from "@sentry/nextjs";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { sendUpdateSms, sendInviteEmail, sendInviteSms } from "@/lib/notify";
@@ -941,8 +942,9 @@ export async function deleteJourney(journeyId) {
     // below rather than leaving the agent stuck.
     try {
       await admin.auth.admin.deleteUser(journey.client_user_id);
-    } catch {
+    } catch (err) {
       // Ignore — the login being left behind isn't worth blocking on.
+      Sentry.captureException(err);
     }
   }
 

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Anchor } from "lucide-react";
+import * as Sentry from "@sentry/nextjs";
 import { createClient } from "@/lib/supabase/client";
 import { notifyClientActivated } from "./actions";
 
@@ -62,9 +63,10 @@ export default function SetPasswordPage() {
     }
     try {
       await notifyClientActivated();
-    } catch {
+    } catch (err) {
       // Best-effort — never block the client from reaching their portal
       // over an internal notification failing.
+      Sentry.captureException(err);
     }
     router.push("/client/portal");
     router.refresh();

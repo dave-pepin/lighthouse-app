@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { dispatchWeeklyUpdate } from "@/lib/weeklyUpdateSend";
 import { sendAgentEmail } from "@/lib/notify";
@@ -73,6 +74,7 @@ export async function GET(request) {
       failed++;
       const errorMessage = "Journey or client access no longer valid";
       details.push({ id: update.id, error: errorMessage });
+      Sentry.captureMessage(`Scheduled update ${update.id} failed: ${errorMessage}`, "warning");
       await notifyAgentOfFailure(journey?.users?.email, journey?.client_name || "your client", errorMessage);
       continue;
     }
@@ -86,6 +88,7 @@ export async function GET(request) {
       failed++;
       const errorMessage = dispatchErrors.join(" ");
       details.push({ id: update.id, error: errorMessage });
+      Sentry.captureMessage(`Scheduled update ${update.id} failed to dispatch: ${errorMessage}`, "error");
       await notifyAgentOfFailure(journey.users?.email, journey.client_name, errorMessage);
       continue;
     }
@@ -114,9 +117,10 @@ export async function GET(request) {
             details.map((d) => `- ${d.id}: ${d.error}`).join("\n"),
         });
       }
-    } catch {
+    } catch (err) {
       // The affected agents already got their own notice above — this
       // owner-level rollup is a nice-to-have on top of that, not load-bearing.
+      Sentry.captureException(err);
     }
   }
 

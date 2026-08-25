@@ -29,6 +29,11 @@ Copy `.env.local.example` to `.env.local`. Required for full functionality: `NEX
 text), and `STRIPE_SECRET_KEY`/`STRIPE_PRICE_ID`/`STRIPE_WEBHOOK_SECRET` (self-serve agent signup billing).
 `lib/anthropic.js` is dead code — the AI suggestion feature actually runs through `lib/openai.js`.
 
+Error monitoring (Sentry) is wired up via `instrumentation.js`/`instrumentation-client.js`/
+`sentry.server.config.js`/`sentry.edge.config.js` and `NEXT_PUBLIC_SENTRY_DSN` — safe to omit locally (errors
+just won't be reported), but should be set in every deployed environment. `SENTRY_AUTH_TOKEN`/`SENTRY_ORG`/
+`SENTRY_PROJECT` are optional and only needed for uploading source maps (readable stack traces in production).
+
 ## Data model & multi-tenancy
 
 Three user kinds share Supabase Auth but are distinguished by which tables reference them:

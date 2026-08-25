@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { stripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createShortLink } from "@/lib/shortLinks";
@@ -132,6 +133,7 @@ async function releaseAgencyPhoneNumbers(admin, agencyId) {
         .eq("id", agent.id);
     } catch (err) {
       console.error(`Couldn't release phone number for agent ${agent.id}:`, err.message);
+      Sentry.captureException(err);
     }
   }
 }
@@ -167,6 +169,7 @@ export async function POST(request) {
     }
   } catch (err) {
     console.error(`Stripe webhook handler error (${event.type}):`, err);
+    Sentry.captureException(err);
     // A non-2xx response tells Stripe to retry — appropriate here, since
     // these are mostly transient failures (a DB hiccup, an email
     // provider blip) rather than "this event doesn't apply."
