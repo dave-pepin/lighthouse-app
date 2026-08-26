@@ -75,9 +75,24 @@ client ever touches (see `add-rate-limit-migration.sql`).
 - **`milestones`, `documents`, `property_photos`** — delegate SELECT + INSERT + UPDATE + DELETE (view/upload/edit), scoped via `journey_id IN (... WHERE is_active_agency_delegate(agency_id))`.
 - **`weekly_updates`, `document_requests`** — delegate **SELECT only**, deliberately. Both tables' write paths (`approveAndSend`/`scheduleUpdate`, `requestDocument`) send a client-facing message, and `inviteClient` similarly invites a new client login — none of the three has ever had a real application-level agency-ownership check (they rely on an initial RLS-gated read, then proceed via the admin client, which bypasses RLS). Since relaxing `journeys` SELECT for delegates would otherwise let a delegate reach all three anyway, `lib/agencyAccess.js`'s `assertRealAgencyMember` guards all three explicitly — the actual security boundary for "no sending messages" is that check, not RLS alone.
 
-Known open item from building this: the `property-photos`/`documents` **storage bucket** policies aren't tracked anywhere in this repo (dashboard-configured, unlike the table-level RLS above) — if a delegate's file upload/download doesn't work in practice, that's a separate bucket-policy fix, not a gap in the migration itself.
-
 **`harbor_resource_items`** (new) — per-section repository of extra files/links on top of each Harbor resource's single note + single postcard image on `agencies` (see `add-harbor-resource-items-migration.sql`). Agency members SELECT/INSERT/DELETE scoped to their own `agency_id`, same shape as `agency_delegates`'s agency-scoped policies — no delegate access at all (unlike the journey-scoped tables above), since this is agency-wide configuration, not per-Journey data. No UPDATE policy — items are add/remove only, never edited in place.
+
+## Storage bucket policies (`storage.objects`)
+
+Unlike the table policies above, these were entirely dashboard-configured and untracked until a storage audit on 2026-08-26 pulled the real state via `pg_policies` (schema `storage`, table `objects`). Every bucket — `documents`, `property-photos`, `agent-branding`, `harbor-resources`, `milestone-videos` — had **only an INSERT policy, scoped by `bucket_id` alone**, no agency/journey/user check at all. Reads were never affected (no SELECT policy exists on `storage.objects` for any bucket — every read already goes through a server-side admin-client signed URL, so the browser never queries a bucket directly), and neither were deletes (no DELETE policy exists either — removal always goes through the admin client, e.g. `journey/[id]/actions.js`'s document/photo delete actions). Only INSERT was a real gap: any authenticated agent, from any agency, could upload into another agency's or Journey's folder in any of these five buckets, since the app relies on the folder path (agency id / Journey id / user id as the first path segment) for organization, not on RLS enforcing it.
+
+Fixed by `fix-storage-bucket-upload-policies-migration.sql`, using `storage.foldername(name)[1]` (the first path segment) to scope each bucket to match how the app actually names its upload paths:
+- **`documents`, `property-photos`** — Journey-scoped (`journeys.agency_id` = caller's agency), **plus** `is_active_agency_delegate()` — these two tables have delegate INSERT access at the table level (see above), so the storage policy needs the same OR clause or a delegate's upload would pass the `documents`/`property_photos` table INSERT but fail at the storage layer.
+- **`harbor-resources`, `milestone-videos`** — agency-scoped directly (the first path segment is the agency id itself, not a Journey id) — Settings-level content, no delegate access.
+- **`agent-branding`** — user-scoped (`auth.uid()`) — personal to each agent, no agency/delegate concept at all.
+
+**To refresh this section**, run the same query as above but scoped to storage:
+```sql
+select policyname, cmd, roles, qual, with_check
+from pg_policies
+where schemaname = 'storage' and tablename = 'objects'
+order by policyname;
+```
 
 ## Known gaps / follow-ups
 
