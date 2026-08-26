@@ -176,9 +176,13 @@ export default function AgentBrandingForm({
   fullName,
   email,
   officeAddress,
+  officeCity,
+  officeState,
+  officeZip,
   cellPhone,
   officePhone,
   faxNumber,
+  licenseNumbers,
 }) {
   const router = useRouter();
   const [color, setColor] = useState(brandColor || "");
@@ -244,12 +248,28 @@ export default function AgentBrandingForm({
     showName,
     email,
     officeAddress,
+    officeCity,
+    officeState,
+    officeZip,
     cellPhone,
     officePhone,
     faxNumber,
+    licenseNumbers,
   };
 
-  const hasAnyPreviewContent = !!(photoUrl || logoUrl || email || officeAddress || cellPhone || officePhone || faxNumber);
+  const hasAnyPreviewContent = !!(
+    photoUrl ||
+    logoUrl ||
+    email ||
+    officeAddress ||
+    officeCity ||
+    officeState ||
+    officeZip ||
+    cellPhone ||
+    officePhone ||
+    faxNumber ||
+    (licenseNumbers && licenseNumbers.length > 0)
+  );
 
   return (
     <div>

@@ -166,9 +166,10 @@ export async function setAgencyResourceImage(agencyId, field, path) {
 }
 
 // An agent's own reply-to email plus optional display-only contact
-// details (office address, cell/office phone, fax) shown on the client
-// portal branding footer — see add-agent-contact-migration.sql and
-// add-agent-contact-details-migration.sql. Uses the admin client
+// details (office address/city/state/zip, cell/office phone, fax,
+// license numbers) shown on the client portal branding footer — see
+// add-agent-contact-migration.sql, add-agent-contact-details-migration.sql,
+// and add-agent-address-license-migration.sql. Uses the admin client
 // (bypassing RLS) but scoped to the caller's own verified id, the same
 // "confirm identity, then mutate by id" pattern setAgentAccess uses,
 // since there's no established RLS policy yet for an agent updating
@@ -183,15 +184,23 @@ export async function updateAgentContactInfo(fields) {
     throw new Error("Not signed in.");
   }
 
+  const licenseNumbers = (fields.licenseNumbers || [])
+    .map((l) => l?.trim())
+    .filter(Boolean);
+
   const admin = createAdminClient();
   const { error } = await admin
     .from("users")
     .update({
       reply_to_email: fields.replyToEmail?.trim() || null,
       office_address: fields.officeAddress?.trim() || null,
+      office_city: fields.officeCity?.trim() || null,
+      office_state: fields.officeState?.trim() || null,
+      office_zip: fields.officeZip?.trim() || null,
       cell_phone: fields.cellPhone?.trim() || null,
       office_phone: fields.officePhone?.trim() || null,
       fax_number: fields.faxNumber?.trim() || null,
+      license_numbers: licenseNumbers,
     })
     .eq("id", user.id);
 

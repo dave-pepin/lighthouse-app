@@ -1,4 +1,17 @@
-import { Mail, Phone, Printer, MapPin } from "lucide-react";
+import { Mail, Phone, Printer, MapPin, BadgeCheck } from "lucide-react";
+
+// Combines the street address with city/state/zip onto one display line
+// — any of these can be set independently, so this only joins the
+// pieces that are actually present.
+function formatFullAddress(agentBranding) {
+  const cityStateZip = [
+    [agentBranding.officeCity, agentBranding.officeState].filter(Boolean).join(", "),
+    agentBranding.officeZip,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  return [agentBranding.officeAddress, cityStateZip].filter(Boolean).join(", ");
+}
 
 // Whether there's anything to show at all — reply-to email deliberately
 // isn't part of this check on its own — it already existed for a
@@ -11,9 +24,13 @@ export function hasAgentBranding(agentBranding) {
     agentBranding?.photoUrl ||
     agentBranding?.logoUrl ||
     agentBranding?.officeAddress ||
+    agentBranding?.officeCity ||
+    agentBranding?.officeState ||
+    agentBranding?.officeZip ||
     agentBranding?.cellPhone ||
     agentBranding?.officePhone ||
-    agentBranding?.faxNumber
+    agentBranding?.faxNumber ||
+    (agentBranding?.licenseNumbers && agentBranding.licenseNumbers.length > 0)
   );
 }
 
@@ -80,9 +97,14 @@ export default function AgentBrandingFooter({ agentBranding }) {
             <Mail size={12} strokeWidth={1.75} /> {agentBranding.email}
           </span>
         )}
-        {agentBranding.officeAddress && (
+        {formatFullAddress(agentBranding) && (
           <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "var(--lh-slate)" }}>
-            <MapPin size={12} strokeWidth={1.75} /> {agentBranding.officeAddress}
+            <MapPin size={12} strokeWidth={1.75} /> {formatFullAddress(agentBranding)}
+          </span>
+        )}
+        {agentBranding.licenseNumbers && agentBranding.licenseNumbers.length > 0 && (
+          <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "var(--lh-slate)" }}>
+            <BadgeCheck size={12} strokeWidth={1.75} /> Lic. {agentBranding.licenseNumbers.join(" · ")}
           </span>
         )}
       </div>

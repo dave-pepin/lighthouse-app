@@ -27,7 +27,7 @@ export default async function SettingsPage() {
   const { data: profile } = await supabase
     .from("users")
     .select(
-      "full_name, agency_id, sms_phone_number, reply_to_email, overdue_digest_threshold_days, profile_photo_path, logo_path, brand_color, office_address, cell_phone, office_phone, fax_number, show_footer_name"
+      "full_name, agency_id, sms_phone_number, reply_to_email, overdue_digest_threshold_days, profile_photo_path, logo_path, brand_color, office_address, office_city, office_state, office_zip, cell_phone, office_phone, fax_number, show_footer_name, license_numbers"
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -146,9 +146,13 @@ export default async function SettingsPage() {
             smsPhoneNumber={profile.sms_phone_number}
             replyToEmail={profile.reply_to_email}
             officeAddress={profile.office_address}
+            officeCity={profile.office_city}
+            officeState={profile.office_state}
+            officeZip={profile.office_zip}
             cellPhone={profile.cell_phone}
             officePhone={profile.office_phone}
             faxNumber={profile.fax_number}
+            licenseNumbers={profile.license_numbers}
           />
         </div>
 
@@ -165,9 +169,13 @@ export default async function SettingsPage() {
           fullName={profile.full_name}
           email={profile.reply_to_email}
           officeAddress={profile.office_address}
+          officeCity={profile.office_city}
+          officeState={profile.office_state}
+          officeZip={profile.office_zip}
           cellPhone={profile.cell_phone}
           officePhone={profile.office_phone}
           faxNumber={profile.fax_number}
+          licenseNumbers={profile.license_numbers}
         />
       </div>
 

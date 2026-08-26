@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Phone } from "lucide-react";
+import { Check, Phone, Plus, X } from "lucide-react";
 import { updateAgentContactInfo, provisionMyPhoneNumber, releaseMyPhoneNumber } from "./actions";
 import { formatUSPhoneInput } from "@/lib/phone";
 
@@ -192,18 +192,40 @@ export default function AgentContactForm({
   smsPhoneNumber,
   replyToEmail,
   officeAddress,
+  officeCity,
+  officeState,
+  officeZip,
   cellPhone,
   officePhone,
   faxNumber,
+  licenseNumbers,
 }) {
   const [email, setEmail] = useState(replyToEmail || "");
   const [address, setAddress] = useState(officeAddress || "");
+  const [city, setCity] = useState(officeCity || "");
+  const [state, setState] = useState(officeState || "");
+  const [zip, setZip] = useState(officeZip || "");
   const [cell, setCell] = useState(cellPhone || "");
   const [office, setOffice] = useState(officePhone || "");
   const [fax, setFax] = useState(faxNumber || "");
+  const [licenses, setLicenses] = useState(
+    licenseNumbers && licenseNumbers.length > 0 ? licenseNumbers : [""]
+  );
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+
+  const handleLicenseChange = (index, value) => {
+    setLicenses((prev) => prev.map((l, i) => (i === index ? value : l)));
+  };
+
+  const handleAddLicense = () => {
+    setLicenses((prev) => [...prev, ""]);
+  };
+
+  const handleRemoveLicense = (index) => {
+    setLicenses((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -213,9 +235,13 @@ export default function AgentContactForm({
       await updateAgentContactInfo({
         replyToEmail: email,
         officeAddress: address,
+        officeCity: city,
+        officeState: state,
+        officeZip: zip,
         cellPhone: cell,
         officePhone: office,
         faxNumber: fax,
+        licenseNumbers: licenses,
       });
       setSaved(true);
     } catch (err) {
@@ -266,6 +292,45 @@ export default function AgentContactForm({
             />
           </div>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <div style={{ flex: "2 1 160px", minWidth: 0 }}>
+              <label style={{ fontSize: 11.5, fontWeight: 600, color: "var(--lh-slate)", display: "block", marginBottom: 4 }}>
+                City <span style={{ fontWeight: 400, color: "var(--lh-slate-light)" }}>(optional)</span>
+              </label>
+              <input
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                className="lh-focus"
+                style={inputStyle}
+                placeholder="Springfield"
+              />
+            </div>
+            <div style={{ flex: "1 1 70px", minWidth: 0 }}>
+              <label style={{ fontSize: 11.5, fontWeight: 600, color: "var(--lh-slate)", display: "block", marginBottom: 4 }}>
+                State <span style={{ fontWeight: 400, color: "var(--lh-slate-light)" }}>(optional)</span>
+              </label>
+              <input
+                value={state}
+                onChange={(e) => setState(e.target.value)}
+                className="lh-focus"
+                style={inputStyle}
+                placeholder="IL"
+                maxLength={2}
+              />
+            </div>
+            <div style={{ flex: "1 1 100px", minWidth: 0 }}>
+              <label style={{ fontSize: 11.5, fontWeight: 600, color: "var(--lh-slate)", display: "block", marginBottom: 4 }}>
+                Zip <span style={{ fontWeight: 400, color: "var(--lh-slate-light)" }}>(optional)</span>
+              </label>
+              <input
+                value={zip}
+                onChange={(e) => setZip(e.target.value)}
+                className="lh-focus"
+                style={inputStyle}
+                placeholder="62704"
+              />
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <div style={{ flex: "1 1 160px", minWidth: 0 }}>
               <label style={{ fontSize: 11.5, fontWeight: 600, color: "var(--lh-slate)", display: "block", marginBottom: 4 }}>
                 Cell phone <span style={{ fontWeight: 400, color: "var(--lh-slate-light)" }}>(optional)</span>
@@ -305,6 +370,64 @@ export default function AgentContactForm({
               style={{ ...inputStyle, maxWidth: 220 }}
               placeholder="555-123-4567"
             />
+          </div>
+          <div>
+            <label style={{ fontSize: 11.5, fontWeight: 600, color: "var(--lh-slate)", display: "block", marginBottom: 4 }}>
+              License number(s) <span style={{ fontWeight: 400, color: "var(--lh-slate-light)" }}>(optional)</span>
+            </label>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {licenses.map((license, index) => (
+                <div key={index} style={{ display: "flex", gap: 6 }}>
+                  <input
+                    value={license}
+                    onChange={(e) => handleLicenseChange(index, e.target.value)}
+                    className="lh-focus"
+                    style={{ ...inputStyle, flex: 1 }}
+                    placeholder="e.g. IL #475.123456"
+                  />
+                  {licenses.length > 1 && (
+                    <button
+                      onClick={() => handleRemoveLicense(index)}
+                      title="Remove this license number"
+                      className="lh-focus"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: "none",
+                        border: "1px solid var(--lh-line)",
+                        borderRadius: 8,
+                        width: 36,
+                        flexShrink: 0,
+                        color: "var(--lh-slate)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={handleAddLicense}
+              className="lh-focus"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                background: "none",
+                border: "none",
+                color: "var(--lh-teal)",
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: "pointer",
+                padding: 0,
+                marginTop: 8,
+              }}
+            >
+              <Plus size={13} /> Add another license number
+            </button>
           </div>
         </div>
         {error && <div style={{ fontSize: 13, color: "var(--lh-red)", marginTop: 8 }}>{error}</div>}
