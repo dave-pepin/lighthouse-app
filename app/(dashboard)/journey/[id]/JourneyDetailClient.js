@@ -252,7 +252,7 @@ export default function JourneyDetailClient({ journey, milestones, documents, la
   }, [milestones]);
   const [newLabel, setNewLabel] = useState("");
   const journeyStages = stagesForRole(journey.role);
-  // The status badge shows what's actually current in Journey History —
+  // The status badge shows what's actually current in the Captain's Log —
   // the next not-yet-done milestone — instead of just the broad stage
   // name, so it stays meaningful as items get checked off within a stage.
   const currentMilestoneLabel = milestones.find((m) => !m.done)?.label;
@@ -1579,11 +1579,11 @@ export default function JourneyDetailClient({ journey, milestones, documents, la
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 20, marginTop: 20 }}>
-        {/* Journey History */}
+        {/* Captain's Log */}
         <section style={{ background: "var(--lh-paper)", border: "1px solid var(--lh-line)", borderRadius: 14, padding: "18px 20px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "0 0 12px" }}>
             <h2 className="lh-display" style={{ fontSize: 15.5, fontWeight: 600, margin: 0 }}>
-              Journey History
+              Captain's Log
             </h2>
             <select
               value={sortMode}
