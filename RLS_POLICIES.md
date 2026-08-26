@@ -58,7 +58,7 @@ client ever touches (see `add-rate-limit-migration.sql`).
 - `agents can delete their own journeys` (DELETE) — narrower: `agent_id = auth.uid()` (only the owning agent, not the whole agency)
 - `clients can view their own journey` (SELECT) — `client_user_id = auth.uid()`
 
-**`milestones`, `weekly_updates`** — same shape: one `ALL` policy for agents scoped by `journey_id IN (... WHERE journeys.agency_id = <caller's agency_id>)`, one client `SELECT` scoped by `client_user_id = auth.uid()` (weekly_updates' client policy also requires `status = 'sent'` — clients never see drafts). `weekly_updates` additionally has a standalone agent `SELECT` that's redundant with its own `ALL` policy.
+**`milestones`, `weekly_updates`** — same shape: one `ALL` policy for agents scoped by `journey_id IN (... WHERE journeys.agency_id = <caller's agency_id>)`, one client `SELECT` scoped by `client_user_id = auth.uid()`. Each client policy also enforces that table's own reveal rule directly in RLS, not just in the app query: `weekly_updates` requires `status = 'sent'` (clients never see drafts), and `milestones` requires `due_date is not null` (clients never see a milestone before an agent sets its due date — fixed by `fix-milestones-due-date-policy-migration.sql` after an RLS audit found the original policy relied on `loadPortalData.js`'s query filter alone). `weekly_updates` additionally has a standalone agent `SELECT` that's redundant with its own `ALL` policy.
 
 **`documents`** — same shape, but split into a separate agent `SELECT` and an agent `ALL` (both present, `ALL` supersedes the `SELECT`) plus the client `SELECT`.
 
