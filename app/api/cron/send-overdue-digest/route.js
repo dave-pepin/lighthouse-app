@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { sendAgentEmail } from "@/lib/notify";
+import { sendEmailBatch, buildAgentEmail } from "@/lib/notify";
 import { findOverdueDigestRecipients, buildDigestMessage } from "@/lib/overdueDigest";
 import { runWithConcurrencyLimit } from "@/lib/concurrency";
 
-// Bounds how many recipients' emails/DB writes run at once — high enough
-// to matter at "hundreds of agents" scale, low enough to stay well under
-// Resend's and Supabase's own per-second limits.
+// Bounds how many recipients' DB writes run at once — the emails
+// themselves don't go through this limiter, see sendEmailBatch, which
+// batches many recipients into far fewer Resend calls instead of one per
+// agent (a load test at "hundreds of agents" scale showed one-call-per-
+// recipient blows straight through Resend's rate limit).
 const CONCURRENCY_LIMIT = 10;
 
 // Meant to be polled once a day (a second cron-job.org job alongside the
@@ -63,30 +65,35 @@ export async function GET(request) {
 
   const recipients = findOverdueDigestRecipients({ journeys, candidateMilestones, agents });
 
+  // One batched Resend call (chunked internally) for every recipient's
+  // digest, instead of one call per agent — see sendEmailBatch.
+  const emails = recipients.map((recipient) =>
+    buildAgentEmail({
+      to: recipient.email,
+      subject: `You have ${recipient.items.length} milestone${recipient.items.length === 1 ? "" : "s"} needing attention across your Journeys`,
+      message: buildDigestMessage(recipient, origin),
+    })
+  );
+  const emailResults = await sendEmailBatch(emails);
+
   let sent = 0;
   let failed = 0;
   const details = [];
 
-  async function processRecipient(recipient) {
-    try {
-      await sendAgentEmail({
-        to: recipient.email,
-        subject: `You have ${recipient.items.length} milestone${recipient.items.length === 1 ? "" : "s"} needing attention across your Journeys`,
-        message: buildDigestMessage(recipient, origin),
-      });
+  await runWithConcurrencyLimit(recipients, CONCURRENCY_LIMIT, async (recipient, i) => {
+    const result = emailResults[i];
+    if (result.ok) {
       await admin
         .from("users")
         .update({ last_overdue_digest_sent_at: new Date().toISOString() })
         .eq("id", recipient.agentId);
       sent++;
-    } catch (err) {
+    } else {
       failed++;
-      details.push({ agentId: recipient.agentId, error: err.message });
-      Sentry.captureException(err);
+      details.push({ agentId: recipient.agentId, error: result.error });
+      Sentry.captureException(new Error(result.error));
     }
-  }
-
-  await runWithConcurrencyLimit(recipients, CONCURRENCY_LIMIT, processRecipient);
+  });
 
   return NextResponse.json({ agentsChecked: agentIds.length, eligible: recipients.length, sent, failed, details });
 }
