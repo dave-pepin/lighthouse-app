@@ -1,4 +1,4 @@
-import { Anchor, Eye, Share2 } from "lucide-react";
+import { Anchor, ChevronDown, Eye, Share2 } from "lucide-react";
 import CourseLine from "@/components/CourseLine";
 import StageTag from "@/components/StageTag";
 import ClientSignOutButton from "@/components/ClientSignOutButton";
@@ -122,16 +122,22 @@ export default function PortalView({
           marginBottom: 20,
         }}
       >
-        <h2 className="lh-display" style={{ fontSize: 15.5, fontWeight: 600, margin: "0 0 12px" }}>
-          Your Progress
-        </h2>
-        <ClientMilestoneList
-          milestones={milestonesWithVideo}
-          documents={documentsWithLinks}
-          nextId={nextId}
-          journeyId={journey.id}
-          previewMode={previewMode}
-        />
+        <input type="checkbox" id="progress-expand" className="lh-progress-checkbox" defaultChecked />
+        <label htmlFor="progress-expand" className="lh-progress-header">
+          <h2 className="lh-display" style={{ fontSize: 15.5, fontWeight: 600, margin: 0 }}>
+            Captain&apos;s Log of your Journey
+          </h2>
+          <ChevronDown size={16} className="lh-progress-chevron" />
+        </label>
+        <div className="lh-progress-content">
+          <ClientMilestoneList
+            milestones={milestonesWithVideo}
+            documents={documentsWithLinks}
+            nextId={nextId}
+            journeyId={journey.id}
+            previewMode={previewMode}
+          />
+        </div>
       </section>
 
       {pendingDocumentRequests.length > 0 && (

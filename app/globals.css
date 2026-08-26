@@ -201,6 +201,44 @@ body {
   }
 }
 
+/* Captain's Log (client portal milestones section): a CSS-only
+   collapsible (checkbox + label + sibling selector, no JS), same
+   pattern as the ReferralCard below but starting expanded — the
+   checkbox defaults to checked, and unchecking it (clicking the header)
+   collapses the content instead. Applies at every width, not just
+   mobile. */
+.lh-progress-checkbox {
+  display: none;
+}
+
+.lh-progress-header {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 12px;
+}
+
+.lh-progress-chevron {
+  color: var(--lh-slate);
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+  transform: rotate(180deg);
+}
+
+.lh-progress-checkbox:not(:checked) ~ .lh-progress-header {
+  margin: 0;
+}
+
+.lh-progress-checkbox:not(:checked) ~ .lh-progress-header .lh-progress-chevron {
+  transform: rotate(0deg);
+}
+
+.lh-progress-checkbox:not(:checked) ~ .lh-progress-content {
+  display: none;
+}
+
 /* ReferralCard: a CSS-only collapsible (checkbox + label + sibling
    selector, no JS). Outside the mobile media query below, none of the
    collapse rules exist at all, so desktop always shows it fully
