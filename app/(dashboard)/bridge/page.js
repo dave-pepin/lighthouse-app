@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Plus, Eye } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import JourneyCard, { GuidanceStrip } from "@/components/JourneyCard";
+import { GuidanceStrip } from "@/components/JourneyCard";
+import JourneyList from "@/components/JourneyList";
 import { getEffectiveAgency } from "@/lib/effectiveAgency";
 
 export default async function BridgePage() {
@@ -101,22 +102,13 @@ export default async function BridgePage() {
 
       {journeys && <GuidanceStrip journeys={journeys} />}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {journeys?.map((j, i) => (
-          <JourneyCard
-            key={j.id}
-            journey={j}
-            currentMilestoneLabel={currentMilestoneByJourneyId[j.id]}
-            isFirst={i === 0}
-            isLast={i === journeys.length - 1}
-          />
-        ))}
-        {journeys?.length === 0 && (
-          <div style={{ color: "var(--lh-slate)", fontSize: 14 }}>
-            No active Journeys yet. Add one to get started.
-          </div>
-        )}
-      </div>
+      {journeys && journeys.length > 0 ? (
+        <JourneyList
+          journeys={journeys.map((j) => ({ ...j, currentMilestoneLabel: currentMilestoneByJourneyId[j.id] }))}
+        />
+      ) : (
+        <div style={{ color: "var(--lh-slate)", fontSize: 14 }}>No active Journeys yet. Add one to get started.</div>
+      )}
     </div>
   );
 }

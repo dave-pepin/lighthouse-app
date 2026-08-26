@@ -1,11 +1,9 @@
 "use client";
 
-import { Bell, ChevronRight, ChevronUp, ChevronDown } from "lucide-react";
+import { Bell, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
 import CourseLine from "./CourseLine";
 import StageTag from "./StageTag";
-import { moveJourney } from "@/app/(dashboard)/bridge/actions";
 
 export function GuidanceStrip({ journeys }) {
   const router = useRouter();
@@ -90,125 +88,62 @@ function timeAgo(dateString) {
   return `${Math.floor(days / 30)}mo ago`;
 }
 
-export default function JourneyCard({ journey, currentMilestoneLabel, isFirst, isLast }) {
+export default function JourneyCard({ journey, currentMilestoneLabel }) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-
-  const handleMove = (e, direction) => {
-    e.stopPropagation();
-    startTransition(() => moveJourney(journey.id, direction));
-  };
 
   return (
-    <div style={{ display: "flex", alignItems: "stretch", gap: 6 }}>
+    <button
+      onClick={() => router.push(`/journey/${journey.id}`)}
+      className="lh-focus lh-anim"
+      style={{
+        background: "var(--lh-paper)",
+        border: "1px solid var(--lh-line)",
+        borderRadius: 14,
+        padding: "18px 20px",
+        cursor: "pointer",
+        textAlign: "left",
+        width: "100%",
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+        transition: "box-shadow 150ms ease, border-color 150ms ease",
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="lh-display" style={{ fontSize: 16.5, fontWeight: 600 }}>
+            {journey.client_name}
+          </div>
+          <div style={{ fontSize: 12.5, color: "var(--lh-slate)", marginTop: 1 }}>{journey.role}</div>
+        </div>
+        <StageTag stage={journey.stage} statusLevel={journey.status_level} currentLabel={currentMilestoneLabel} />
+      </div>
+
+      <CourseLine stageIndex={journey.stage_index} statusLevel={journey.status_level} role={journey.role} compact />
+
       <div
         style={{
           display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          gap: 2,
-          flexShrink: 0,
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 10,
+          fontSize: 12.5,
+          color: "var(--lh-slate)",
         }}
       >
-        <button
-          onClick={(e) => handleMove(e, "up")}
-          disabled={isFirst || isPending}
-          title="Move up"
-          className="lh-focus"
-          style={{
-            background: "var(--lh-paper)",
-            border: "1px solid var(--lh-line)",
-            borderRadius: 7,
-            width: 22,
-            height: 22,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 0,
-            cursor: isFirst || isPending ? "default" : "pointer",
-            opacity: isFirst ? 0.35 : 1,
-          }}
-        >
-          <ChevronUp size={13} color="var(--lh-slate)" />
-        </button>
-        <button
-          onClick={(e) => handleMove(e, "down")}
-          disabled={isLast || isPending}
-          title="Move down"
-          className="lh-focus"
-          style={{
-            background: "var(--lh-paper)",
-            border: "1px solid var(--lh-line)",
-            borderRadius: 7,
-            width: 22,
-            height: 22,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 0,
-            cursor: isLast || isPending ? "default" : "pointer",
-            opacity: isLast ? 0.35 : 1,
-          }}
-        >
-          <ChevronDown size={13} color="var(--lh-slate)" />
-        </button>
-      </div>
-
-      <button
-        onClick={() => router.push(`/journey/${journey.id}`)}
-        className="lh-focus lh-anim"
-        style={{
-          background: "var(--lh-paper)",
-          border: "1px solid var(--lh-line)",
-          borderRadius: 14,
-          padding: "18px 20px",
-          cursor: "pointer",
-          textAlign: "left",
-          width: "100%",
-          flex: 1,
-          minWidth: 0,
-          display: "flex",
-          flexDirection: "column",
-          gap: 12,
-          transition: "box-shadow 150ms ease, border-color 150ms ease",
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="lh-display" style={{ fontSize: 16.5, fontWeight: 600 }}>
-              {journey.client_name}
-            </div>
-            <div style={{ fontSize: 12.5, color: "var(--lh-slate)", marginTop: 1 }}>{journey.role}</div>
-          </div>
-          <StageTag stage={journey.stage} statusLevel={journey.status_level} currentLabel={currentMilestoneLabel} />
-        </div>
-
-        <CourseLine stageIndex={journey.stage_index} statusLevel={journey.status_level} role={journey.role} compact />
-
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: 10,
-            fontSize: 12.5,
-            color: "var(--lh-slate)",
-          }}
-        >
-          {journey.stage === "Harbor" ? (
-            <span style={{ flex: 1, minWidth: 0, overflowWrap: "break-word" }}>
-              {journey.closed_at ? `Closed ${formatClosedDate(journey.closed_at)}` : "Closing date not set"}
+        {journey.stage === "Harbor" ? (
+          <span style={{ flex: 1, minWidth: 0, overflowWrap: "break-word" }}>
+            {journey.closed_at ? `Closed ${formatClosedDate(journey.closed_at)}` : "Closing date not set"}
+          </span>
+        ) : (
+          <>
+            <span style={{ flex: 1, minWidth: 0, overflowWrap: "break-word" }}>Next: {journey.next_action}</span>
+            <span className="lh-mono" style={{ color: "var(--lh-slate-light)", fontSize: 11, flexShrink: 0 }}>
+              {timeAgo(journey.last_activity_at)}
             </span>
-          ) : (
-            <>
-              <span style={{ flex: 1, minWidth: 0, overflowWrap: "break-word" }}>Next: {journey.next_action}</span>
-              <span className="lh-mono" style={{ color: "var(--lh-slate-light)", fontSize: 11, flexShrink: 0 }}>
-                {timeAgo(journey.last_activity_at)}
-              </span>
-            </>
-          )}
-        </div>
-      </button>
-    </div>
+          </>
+        )}
+      </div>
+    </button>
   );
 }
