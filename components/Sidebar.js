@@ -456,7 +456,10 @@ export default function Sidebar({
         </div>
       )}
 
-      <div style={{ marginTop: delegateGrants.length > 0 ? 0 : "auto", paddingLeft: 4 }}>
+      <div
+        className="lh-sidebar-bottom-profile"
+        style={{ marginTop: delegateGrants.length > 0 ? 0 : "auto", paddingLeft: 4 }}
+      >
         <div
           style={{
             width: 30,

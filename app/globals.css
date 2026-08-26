@@ -82,6 +82,60 @@ body {
   display: none;
 }
 
+/* Pins the nav (Bridge/Harbor/Team/Settings) to the viewport on desktop
+   so it's always reachable without scrolling down a long page — sticky
+   rather than fixed so it still participates in .lh-app-shell's flex row
+   (no separate width bookkeeping needed for the main content column).
+   max-height + its own overflow-y means a long PHOTOS list (see
+   Sidebar.js) scrolls internally instead of pushing nav items off-screen. */
+@media (min-width: 861px) {
+  .lh-sidebar {
+    position: sticky;
+    top: 0;
+    /* min-height wins over height/max-height when they conflict (a
+       classic CSS gotcha), so the base rule's min-height: 100% has to be
+       reset here — otherwise a tall page's app-shell height would still
+       force the sidebar past 100vh despite the explicit height below. */
+    min-height: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+}
+
+/* A slim bar above every dashboard page's own content, holding just the
+   account/sign-out control (see components/TopBarProfile.js) — sticky
+   and in normal flow, not position: fixed, so it pushes each page's
+   content down by its own height instead of floating over whatever
+   top-right button that page happens to have (Bridge's "New Journey",
+   a Journey's "Approve & Send," etc.), which a floating overlay would
+   risk colliding with. Reachable regardless of how long the page
+   scrolls, same motivation as the sticky sidebar above. Mobile keeps its
+   own copy inside the drawer instead (.lh-sidebar-bottom-profile below),
+   since the drawer doesn't have this same long-page scroll problem. */
+.lh-dashboard-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 24px;
+  background: var(--lh-fog);
+}
+
+.lh-sidebar-bottom-profile {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .lh-dashboard-topbar {
+    display: none;
+  }
+
+  .lh-sidebar-bottom-profile {
+    display: block;
+  }
+}
+
 @media (max-width: 860px) {
   .lh-app-shell {
     flex-direction: column;

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
+import TopBarProfile from "@/components/TopBarProfile";
 import { getEffectiveAgency, getActiveDelegateGrants } from "@/lib/effectiveAgency";
 
 export default async function DashboardLayout({ children }) {
@@ -51,7 +52,12 @@ export default async function DashboardLayout({ children }) {
         effectiveAgency={effectiveAgency}
         delegateGrants={delegateGrants}
       />
-      <div style={{ flex: 1, minWidth: 0, overflowY: "auto" }}>{children}</div>
+      <div style={{ flex: 1, minWidth: 0, overflowY: "auto" }}>
+        <div className="lh-dashboard-topbar">
+          <TopBarProfile fullName={fullName} />
+        </div>
+        {children}
+      </div>
     </div>
   );
 }
