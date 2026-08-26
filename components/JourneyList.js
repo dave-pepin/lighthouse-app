@@ -86,9 +86,39 @@ export default function JourneyList({ journeys }) {
   const displayedJourneys = sortedJourneys(orderedJourneys, sortMode);
   const manual = sortMode === "manual";
 
+  // Adopts whatever's currently displayed under a computed sort (Closing
+  // Date/Last Name/Date Entered) as the new persisted Manual order — lets
+  // an agent sort to see an arrangement they like, lock it in, then fine-
+  // tune further with drag instead of picking one or the other forever.
+  const handleUseThisOrder = () => {
+    setOrderedJourneys(displayedJourneys);
+    setSortMode("manual");
+    startTransition(() => reorderJourneys(displayedJourneys.map((j) => j.id)));
+  };
+
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 10, marginBottom: 10 }}>
+        {!manual && (
+          <button
+            onClick={handleUseThisOrder}
+            disabled={isPending}
+            className="lh-focus"
+            style={{
+              background: "var(--lh-navy)",
+              color: "white",
+              border: "none",
+              borderRadius: 6,
+              padding: "4px 10px",
+              fontSize: 11.5,
+              fontWeight: 600,
+              cursor: isPending ? "default" : "pointer",
+              opacity: isPending ? 0.6 : 1,
+            }}
+          >
+            Use this order
+          </button>
+        )}
         <select
           value={sortMode}
           onChange={(e) => setSortMode(e.target.value)}
