@@ -12,6 +12,7 @@ import { toE164 } from "@/lib/phone";
 import { stagesForRole } from "@/components/CourseLine";
 import { generateText } from "@/lib/openai";
 import { createShortLink } from "@/lib/shortLinks";
+import { assertRealAgencyMember } from "@/lib/agencyAccess";
 
 export async function updateClientInfo(
   journeyId,
@@ -250,6 +251,10 @@ export async function saveDraft(updateId, journeyId, text) {
 export async function approveAndSend(updateId, journeyId) {
   const supabase = await createClient();
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const { data: update } = await supabase
     .from("weekly_updates")
     .select("*")
@@ -265,6 +270,8 @@ export async function approveAndSend(updateId, journeyId) {
   if (!update || !journey) {
     throw new Error("Couldn't find that update or Journey.");
   }
+
+  await assertRealAgencyMember(supabase, user.id, journey.agency_id);
 
   if (!update.draft_text?.trim()) {
     throw new Error("Write a draft before sending.");
@@ -316,15 +323,21 @@ export async function scheduleUpdate(updateId, journeyId, scheduledFor) {
     throw new Error("Pick a date and time in the future.");
   }
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const { data: journey } = await supabase
     .from("journeys")
-    .select("client_user_id")
+    .select("client_user_id, agency_id")
     .eq("id", journeyId)
     .single();
 
   if (!journey?.client_user_id) {
     throw new Error("Invite this client to their portal first — no updates go out until then.");
   }
+
+  await assertRealAgencyMember(supabase, user.id, journey.agency_id);
 
   await supabase
     .from("weekly_updates")
@@ -428,7 +441,9 @@ export async function requestDocument(journeyId, label) {
 
   const { data: journey } = await supabase
     .from("journeys")
-    .select("client_email, client_email_2, client_phone, client_phone_2, update_preference, agent_id, client_user_id")
+    .select(
+      "client_email, client_email_2, client_phone, client_phone_2, update_preference, agent_id, client_user_id, agency_id"
+    )
     .eq("id", journeyId)
     .single();
   if (!journey) {
@@ -437,6 +452,8 @@ export async function requestDocument(journeyId, label) {
   if (!journey.client_user_id) {
     throw new Error("Invite this client to their portal first — they won't be able to see or fulfill a request until then.");
   }
+
+  await assertRealAgencyMember(supabase, user.id, journey.agency_id);
 
   const admin = createAdminClient();
   const { data: request, error } = await admin
@@ -765,10 +782,14 @@ export async function removeVideoFromMilestone(milestoneId, journeyId) {
 export async function inviteClient(journeyId) {
   const supabase = await createClient();
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const { data: journey } = await supabase
     .from("journeys")
     .select(
-      "client_name, client_email, client_phone, client_email_2, client_phone_2, update_preference, client_user_id, agent_id, role"
+      "client_name, client_email, client_phone, client_email_2, client_phone_2, update_preference, client_user_id, agent_id, role, agency_id"
     )
     .eq("id", journeyId)
     .single();
@@ -776,6 +797,8 @@ export async function inviteClient(journeyId) {
   if (!journey) {
     throw new Error("Couldn't find that Journey.");
   }
+
+  await assertRealAgencyMember(supabase, user.id, journey.agency_id);
 
   const wantsEmail = journey.update_preference === "email" || journey.update_preference === "both";
   const wantsSms = journey.update_preference === "sms" || journey.update_preference === "both";

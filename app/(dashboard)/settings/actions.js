@@ -5,6 +5,73 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { provisionPhoneNumber, releasePhoneNumber } from "@/lib/twilioNumbers";
 import { revalidatePath } from "next/cache";
 
+// Grants a colleague from a DIFFERENT agency time-boxed access to this
+// agent's own agency (see add-agency-delegates-migration.sql) — e.g.
+// covering the business while away. Looks the invitee up directly in
+// public.users (every agent, regardless of agency, shares this one
+// table) rather than the Auth Admin API, since she already has her own
+// login elsewhere.
+export async function grantDelegateAccess(email, startsAt, endsAt) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data: profile } = await supabase.from("users").select("agency_id").eq("id", user.id).maybeSingle();
+  if (!profile?.agency_id) {
+    throw new Error("Couldn't find your agency.");
+  }
+
+  const trimmedEmail = email?.trim();
+  if (!trimmedEmail) {
+    throw new Error("An email is required.");
+  }
+
+  const start = new Date(startsAt);
+  const end = new Date(endsAt);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
+    throw new Error("Pick a valid start and end date, with the end after the start.");
+  }
+
+  // The RLS-scoped client can only see this agent's own agency's members
+  // (see RLS_POLICIES.md's users SELECT policy) — looking up someone in a
+  // different agency needs the admin client, same as team/actions.js's
+  // setAgentAccess cross-agency check.
+  const admin = createAdminClient();
+  const { data: invitee } = await admin.from("users").select("id, agency_id").eq("email", trimmedEmail).maybeSingle();
+
+  if (!invitee) {
+    throw new Error("No Lighthouse agent found with that email — they need their own login first.");
+  }
+  if (invitee.agency_id === profile.agency_id) {
+    throw new Error("They're already on your team, with full access — no need for this.");
+  }
+
+  const { error } = await supabase.from("agency_delegates").insert({
+    agency_id: profile.agency_id,
+    delegate_user_id: invitee.id,
+    granted_by: user.id,
+    starts_at: start.toISOString(),
+    ends_at: end.toISOString(),
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/settings");
+}
+
+export async function revokeDelegateAccess(grantId) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("agency_delegates").delete().eq("id", grantId);
+  if (error) {
+    throw new Error(error.message);
+  }
+  revalidatePath("/settings");
+}
+
 export async function updateAgencyResources(agencyId, fields) {
   const supabase = await createClient();
 

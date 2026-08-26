@@ -8,10 +8,11 @@ facing feature) can be checked against what's *actually* enforced instead
 of guessing, the way several migrations earlier in this build-out had to
 flag their own policies as "assumption to verify."
 
-**Last captured:** 2026-08-25, after applying
+**Last captured:** 2026-08-26, after applying
+`add-agency-delegates-migration.sql` (see below — the app's first
+cross-agency data-sharing mechanism between ordinary agents), on top of
 `add-property-photos-update-policy-migration.sql` and
-`fix-document-requests-agency-policy-migration.sql` (see below — both
-fix real gaps this snapshot exercise found).
+`fix-document-requests-agency-policy-migration.sql`.
 
 **To refresh this file** after any dashboard-side policy change, run in
 the Supabase SQL Editor and update this file from the result:
@@ -66,6 +67,15 @@ client ever touches (see `add-rate-limit-migration.sql`).
 **`document_requests`** — agent `SELECT` (now scoped via `journeys.agency_id`, fixed by `fix-document-requests-agency-policy-migration.sql`), client `SELECT` scoped by `client_user_id = auth.uid()`. Deliberately **no INSERT/UPDATE policies at all** — every write goes through the admin client after an application-level ownership check (see `requestDocument`/`cancelDocumentRequest` in `app/(dashboard)/journey/[id]/actions.js`, and `getClientDocumentUploadUrl`/`fulfillDocumentRequest` in `app/client/portal/actions.js`).
 
 **`milestone_video_defaults`, `videos`** — agency-scoped SELECT/INSERT (both), plus UPDATE/DELETE for `milestone_video_defaults` only (matches that `videos` has no update/delete action anywhere in the app today).
+
+**`agency_delegates`** (new) — lets an agent grant a colleague at a *different* agency time-boxed access to their own agency's data (e.g. covering the business while away), without changing that colleague's actual `agency_id`. Agency members can SELECT/INSERT/DELETE grants for their own `agency_id`; a delegate can SELECT their own grant rows. A `stable` SQL function, `is_active_agency_delegate(target_agency_id)`, checks for a currently-active (`now() between starts_at and ends_at`) grant and is used inside the additive policies below — none of them replace or modify the existing agent policies documented above, they just add a second way in.
+
+- **`agencies`** — delegate SELECT, scoped to just seeing the covered agency's name (for the switcher/banner) — no UPDATE.
+- **`journeys`** — delegate SELECT + UPDATE only (no INSERT/DELETE — a delegate can't create or delete Journeys).
+- **`milestones`, `documents`, `property_photos`** — delegate SELECT + INSERT + UPDATE + DELETE (view/upload/edit), scoped via `journey_id IN (... WHERE is_active_agency_delegate(agency_id))`.
+- **`weekly_updates`, `document_requests`** — delegate **SELECT only**, deliberately. Both tables' write paths (`approveAndSend`/`scheduleUpdate`, `requestDocument`) send a client-facing message, and `inviteClient` similarly invites a new client login — none of the three has ever had a real application-level agency-ownership check (they rely on an initial RLS-gated read, then proceed via the admin client, which bypasses RLS). Since relaxing `journeys` SELECT for delegates would otherwise let a delegate reach all three anyway, `lib/agencyAccess.js`'s `assertRealAgencyMember` guards all three explicitly — the actual security boundary for "no sending messages" is that check, not RLS alone.
+
+Known open item from building this: the `property-photos`/`documents` **storage bucket** policies aren't tracked anywhere in this repo (dashboard-configured, unlike the table-level RLS above) — if a delegate's file upload/download doesn't work in practice, that's a separate bucket-policy fix, not a gap in the migration itself.
 
 ## Known gaps / follow-ups
 

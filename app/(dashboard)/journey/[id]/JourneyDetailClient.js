@@ -212,7 +212,16 @@ function DocumentThumbnail({ doc, onDelete, deleting }) {
   );
 }
 
-export default function JourneyDetailClient({ journey, milestones, documents, latestUpdate, videoLibrary, clientAccess, documentRequests }) {
+export default function JourneyDetailClient({
+  journey,
+  milestones,
+  documents,
+  latestUpdate,
+  videoLibrary,
+  clientAccess,
+  documentRequests,
+  canSendMessages = true,
+}) {
   const router = useRouter();
   const supabase = createClient();
   const fileInputRef = useRef(null);
@@ -760,6 +769,25 @@ export default function JourneyDetailClient({ journey, milestones, documents, la
 
   return (
     <div style={{ maxWidth: 1040, margin: "0 auto", padding: "36px 32px 60px" }}>
+      {!canSendMessages && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "9px 14px",
+            background: "var(--lh-navy)",
+            color: "white",
+            fontSize: 12.5,
+            borderRadius: 8,
+            marginBottom: 18,
+          }}
+        >
+          <Eye size={13} />
+          You&apos;re covering this agency — sending messages (invites, updates, document requests) is
+          disabled.
+        </div>
+      )}
       <button
         onClick={() => router.back()}
         className="lh-focus"
@@ -1046,7 +1074,7 @@ export default function JourneyDetailClient({ journey, milestones, documents, la
         {!confirmingInvite ? (
           <button
             onClick={() => setConfirmingInvite(true)}
-            disabled={invitingClient || !journey.client_email}
+            disabled={invitingClient || !journey.client_email || !canSendMessages}
             className="lh-focus"
             style={{
               background: "none",
@@ -1055,10 +1083,16 @@ export default function JourneyDetailClient({ journey, milestones, documents, la
               padding: "3px 9px",
               fontSize: 11.5,
               color: "var(--lh-slate)",
-              cursor: journey.client_email ? "pointer" : "default",
-              opacity: invitingClient ? 0.6 : 1,
+              cursor: journey.client_email && canSendMessages ? "pointer" : "default",
+              opacity: invitingClient || !canSendMessages ? 0.6 : 1,
             }}
-            title={!journey.client_email ? "Add a client email first" : undefined}
+            title={
+              !canSendMessages
+                ? "Sending messages is disabled while covering another agency"
+                : !journey.client_email
+                ? "Add a client email first"
+                : undefined
+            }
           >
             {journey.client_user_id ? "Resend login link" : "Invite client to portal"}
           </button>
@@ -1466,8 +1500,14 @@ export default function JourneyDetailClient({ journey, milestones, documents, la
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     <button
                       onClick={handleApprove}
-                      disabled={isPending || !journey.client_user_id}
-                      title={!journey.client_user_id ? "Invite this client to their portal first" : undefined}
+                      disabled={isPending || !journey.client_user_id || !canSendMessages}
+                      title={
+                        !canSendMessages
+                          ? "Sending messages is disabled while covering another agency"
+                          : !journey.client_user_id
+                          ? "Invite this client to their portal first"
+                          : undefined
+                      }
                       className="lh-focus"
                       style={{
                         display: "flex",
@@ -1480,8 +1520,8 @@ export default function JourneyDetailClient({ journey, milestones, documents, la
                         padding: "8px 15px",
                         fontSize: 13,
                         fontWeight: 600,
-                        cursor: !journey.client_user_id ? "default" : "pointer",
-                        opacity: !journey.client_user_id ? 0.5 : 1,
+                        cursor: !journey.client_user_id || !canSendMessages ? "default" : "pointer",
+                        opacity: !journey.client_user_id || !canSendMessages ? 0.5 : 1,
                       }}
                     >
                       <Check size={14} /> Approve & Send
@@ -1492,8 +1532,14 @@ export default function JourneyDetailClient({ journey, milestones, documents, la
                     {!schedulingOpen && (
                       <button
                         onClick={() => setSchedulingOpen(true)}
-                        disabled={isPending || !journey.client_user_id}
-                        title={!journey.client_user_id ? "Invite this client to their portal first" : undefined}
+                        disabled={isPending || !journey.client_user_id || !canSendMessages}
+                        title={
+                          !canSendMessages
+                            ? "Sending messages is disabled while covering another agency"
+                            : !journey.client_user_id
+                            ? "Invite this client to their portal first"
+                            : undefined
+                        }
                         className="lh-focus"
                         style={{
                           display: "flex",
@@ -1505,8 +1551,8 @@ export default function JourneyDetailClient({ journey, milestones, documents, la
                           padding: "8px 15px",
                           fontSize: 13,
                           color: "var(--lh-slate)",
-                          cursor: !journey.client_user_id ? "default" : "pointer",
-                          opacity: !journey.client_user_id ? 0.5 : 1,
+                          cursor: !journey.client_user_id || !canSendMessages ? "default" : "pointer",
+                          opacity: !journey.client_user_id || !canSendMessages ? 0.5 : 1,
                         }}
                       >
                         <Calendar size={14} /> Schedule for later
@@ -2194,8 +2240,14 @@ export default function JourneyDetailClient({ journey, milestones, documents, la
             <div style={{ display: "flex", gap: 8 }}>
               <button
                 onClick={() => setRequestingDocument((cur) => !cur)}
-                disabled={!journey.client_user_id}
-                title={!journey.client_user_id ? "Invite this client to their portal first" : undefined}
+                disabled={!journey.client_user_id || !canSendMessages}
+                title={
+                  !canSendMessages
+                    ? "Sending messages is disabled while covering another agency"
+                    : !journey.client_user_id
+                    ? "Invite this client to their portal first"
+                    : undefined
+                }
                 className="lh-focus"
                 style={{
                   display: "flex",

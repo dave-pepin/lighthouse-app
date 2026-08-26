@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
+import { getEffectiveAgency, getActiveDelegateGrants } from "@/lib/effectiveAgency";
 
 export default async function DashboardLayout({ children }) {
   const supabase = await createClient();
@@ -12,6 +13,8 @@ export default async function DashboardLayout({ children }) {
   let fullName = "";
   let guidanceCount = 0;
   let isPlatformOwner = false;
+  let effectiveAgency = null;
+  let delegateGrants = [];
 
   if (user) {
     const { data: profile } = await supabase
@@ -28,16 +31,26 @@ export default async function DashboardLayout({ children }) {
     fullName = profile.full_name || "";
     isPlatformOwner = !!profile.is_platform_owner;
 
+    effectiveAgency = await getEffectiveAgency(supabase, user.id);
+    delegateGrants = await getActiveDelegateGrants(supabase, user.id);
+
     const { count } = await supabase
       .from("journeys")
       .select("*", { count: "exact", head: true })
+      .eq("agency_id", effectiveAgency.agencyId)
       .in("status_level", ["caution", "danger"]);
     guidanceCount = count || 0;
   }
 
   return (
     <div className="lh-app-shell">
-      <Sidebar guidanceCount={guidanceCount} fullName={fullName} isPlatformOwner={isPlatformOwner} />
+      <Sidebar
+        guidanceCount={guidanceCount}
+        fullName={fullName}
+        isPlatformOwner={isPlatformOwner}
+        effectiveAgency={effectiveAgency}
+        delegateGrants={delegateGrants}
+      />
       <div style={{ flex: 1, minWidth: 0, overflowY: "auto" }}>{children}</div>
     </div>
   );
