@@ -1,11 +1,17 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import JourneyDetailClient from "./JourneyDetailClient";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { getEffectiveAgency } from "@/lib/effectiveAgency";
 
 export default async function JourneyDetailPage({ params }) {
   const { id } = await params;
   const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const effectiveAgency = await getEffectiveAgency(supabase, user.id);
 
   const { data: journey } = await supabase
     .from("journeys")
@@ -14,6 +20,14 @@ export default async function JourneyDetailPage({ params }) {
     .single();
 
   if (!journey) notFound();
+
+  // Don't let a delegate reach their own agency's Journeys while
+  // "covering" is selected, or vice versa, just by URL — RLS would allow
+  // the read (both are visible to the same auth.uid()), but only one
+  // agency should ever be in view at a time.
+  if (journey.agency_id !== effectiveAgency.agencyId) {
+    redirect("/bridge");
+  }
 
   const [{ data: milestones }, { data: documents }, { data: weeklyUpdates }, { data: videoLibrary }, { data: documentRequests }] =
     await Promise.all([
@@ -117,6 +131,7 @@ export default async function JourneyDetailPage({ params }) {
       videoLibrary={videoLibrary || []}
       clientAccess={clientAccess}
       documentRequests={documentRequests || []}
+      canSendMessages={!effectiveAgency.isDelegate}
     />
   );
 }

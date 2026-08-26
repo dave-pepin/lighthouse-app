@@ -6,6 +6,7 @@ import MilestoneVideoDefaults from "./MilestoneVideoDefaults";
 import AgentContactForm from "./AgentContactForm";
 import OverdueDigestForm from "./OverdueDigestForm";
 import AgentBrandingForm from "./AgentBrandingForm";
+import DelegateAccessForm from "./DelegateAccessForm";
 
 const IMAGE_FIELDS = [
   ["trusted_contractors_image", "trustedContractorsImageUrl"],
@@ -82,6 +83,29 @@ export default async function SettingsPage() {
       .eq("agency_id", profile.agency_id),
   ]);
 
+  // The delegate's full_name lives on their `users` row in a DIFFERENT
+  // agency, which the RLS-scoped client can't see (users SELECT is
+  // scoped to your own agency) — the admin client fills in the display
+  // name only, nothing else.
+  const { data: delegateGrantRows } = await supabase
+    .from("agency_delegates")
+    .select("id, delegate_user_id, starts_at, ends_at")
+    .eq("agency_id", profile.agency_id)
+    .order("starts_at", { ascending: true });
+
+  let delegateGrants = [];
+  if (delegateGrantRows && delegateGrantRows.length > 0) {
+    const { data: delegateUsers } = await admin
+      .from("users")
+      .select("id, full_name")
+      .in(
+        "id",
+        delegateGrantRows.map((g) => g.delegate_user_id)
+      );
+    const nameById = Object.fromEntries((delegateUsers || []).map((u) => [u.id, u.full_name]));
+    delegateGrants = delegateGrantRows.map((g) => ({ ...g, delegateName: nameById[g.delegate_user_id] || "Unknown" }));
+  }
+
   let videoLibraryWithUrls = [];
   if (videoLibrary && videoLibrary.length > 0) {
     videoLibraryWithUrls = await Promise.all(
@@ -145,6 +169,10 @@ export default async function SettingsPage() {
           officePhone={profile.office_phone}
           faxNumber={profile.fax_number}
         />
+      </div>
+
+      <div style={{ marginBottom: 40 }}>
+        <DelegateAccessForm grants={delegateGrants} />
       </div>
 
       <SettingsForm agency={agency} imageUrls={imageUrls} />

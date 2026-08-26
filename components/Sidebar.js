@@ -5,11 +5,22 @@ import { Compass, Anchor, LifeBuoy, ImagePlus, X, Settings, Users, Menu, GripVer
 import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { addPropertyPhoto, deletePropertyPhoto, reorderPropertyPhotos } from "@/app/(dashboard)/journey/[id]/actions";
+import { setActiveAgency } from "@/app/(dashboard)/switchAgencyActions";
 import { reorderById } from "@/lib/reorder";
 
 const MAX_PHOTOS = 5;
 
-export default function Sidebar({ guidanceCount, fullName, isPlatformOwner = false }) {
+function formatUntil(dateString) {
+  return new Date(dateString).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+export default function Sidebar({
+  guidanceCount,
+  fullName,
+  isPlatformOwner = false,
+  effectiveAgency = null,
+  delegateGrants = [],
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const supabase = createClient();
@@ -155,6 +166,13 @@ export default function Sidebar({ guidanceCount, fullName, isPlatformOwner = fal
     .join("")
     .slice(0, 2)
     .toUpperCase();
+
+  const handleSwitchAgency = (agencyId) => {
+    startTransition(async () => {
+      await setActiveAgency(agencyId === effectiveAgency?.ownAgencyId ? null : agencyId);
+      router.refresh();
+    });
+  };
 
   const handleSignOut = async () => {
     setMobileOpen(false);
@@ -403,7 +421,42 @@ export default function Sidebar({ guidanceCount, fullName, isPlatformOwner = fal
         )}
       </nav>
 
-      <div style={{ marginTop: "auto", paddingLeft: 4 }}>
+      {delegateGrants.length > 0 && (
+        <div style={{ marginTop: "auto", paddingLeft: 4, paddingRight: 4, marginBottom: 12 }}>
+          <label
+            className="lh-mono"
+            style={{ fontSize: 10, color: "var(--lh-slate-light)", fontWeight: 700, letterSpacing: 0.3 }}
+          >
+            VIEWING
+          </label>
+          <select
+            value={effectiveAgency?.isDelegate ? effectiveAgency.agencyId : effectiveAgency?.ownAgencyId}
+            onChange={(e) => handleSwitchAgency(e.target.value)}
+            disabled={isPending}
+            className="lh-focus"
+            style={{
+              width: "100%",
+              marginTop: 4,
+              border: "1px solid var(--lh-line)",
+              borderRadius: 7,
+              padding: "6px 8px",
+              fontSize: 12.5,
+              color: "var(--lh-navy)",
+              background: "var(--lh-paper)",
+              cursor: "pointer",
+            }}
+          >
+            <option value={effectiveAgency?.ownAgencyId}>My agency</option>
+            {delegateGrants.map((g) => (
+              <option key={g.agencyId} value={g.agencyId}>
+                Covering: {g.agencyName} (until {formatUntil(g.endsAt)})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      <div style={{ marginTop: delegateGrants.length > 0 ? 0 : "auto", paddingLeft: 4 }}>
         <div
           style={{
             width: 30,
