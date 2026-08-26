@@ -18,11 +18,17 @@ const ITEM_ICONS = {
 function ResourceItem({ item }) {
   if (!item.url) return null;
   const Icon = item.kind === "link" ? Link2 : ITEM_ICONS[item.fileType] || File;
+  // File items are signed with Supabase's `download` option (see
+  // loadPortalData.js), which sets Content-Disposition: attachment so the
+  // browser saves the file — the `download` attribute here is just a
+  // same-origin-safe fallback name, not what actually triggers it. Link
+  // items open normally, since we don't control what's on the other end.
   return (
     <a
       href={item.url}
       target="_blank"
       rel="noopener noreferrer"
+      download={item.kind === "file" ? item.label : undefined}
       style={{
         display: "flex",
         alignItems: "center",

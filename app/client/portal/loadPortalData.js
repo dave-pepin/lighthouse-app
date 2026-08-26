@@ -150,7 +150,21 @@ export async function loadPortalData(supabase, admin, journey, { previewMode = f
 
         // Each section's extra files/links (see
         // add-harbor-resource-items-migration.sql) — on top of the single
-        // note + single postcard image above.
+        // note + single postcard image above. File items are signed with
+        // Supabase's `download` option so the client's browser saves the
+        // file instead of just navigating to it (a video/PDF would
+        // otherwise open inline) — unlike the postcard image above, which
+        // is meant to display inline, not download.
+        const signResourceFileForDownload = async (path, label) => {
+          if (!path) return null;
+          const extensionMatch = path.match(/\.[^./]+$/);
+          const downloadName = `${label}${extensionMatch ? extensionMatch[0] : ""}`;
+          const { data } = await admin.storage
+            .from("harbor-resources")
+            .createSignedUrl(path, 60 * 60, { download: downloadName });
+          return data?.signedUrl || null;
+        };
+
         const { data: resourceItemRows } = await admin
           .from("harbor_resource_items")
           .select("section, kind, file_type, storage_path, url, label")
@@ -161,7 +175,8 @@ export async function loadPortalData(supabase, admin, journey, { previewMode = f
         if (resourceItemRows && resourceItemRows.length > 0) {
           await Promise.all(
             resourceItemRows.map(async (row) => {
-              const signedUrl = row.kind === "file" ? await signResourceImage(row.storage_path) : null;
+              const signedUrl =
+                row.kind === "file" ? await signResourceFileForDownload(row.storage_path, row.label) : null;
               itemsBySection[row.section]?.push({
                 kind: row.kind,
                 fileType: row.file_type,
