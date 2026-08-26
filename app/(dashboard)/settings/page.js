@@ -5,6 +5,7 @@ import SettingsForm from "./SettingsForm";
 import MilestoneVideoDefaults from "./MilestoneVideoDefaults";
 import AgentContactForm from "./AgentContactForm";
 import OverdueDigestForm from "./OverdueDigestForm";
+import MarketImpactDigestForm from "./MarketImpactDigestForm";
 import AgentBrandingForm from "./AgentBrandingForm";
 import DelegateAccessForm from "./DelegateAccessForm";
 
@@ -27,7 +28,7 @@ export default async function SettingsPage() {
   const { data: profile } = await supabase
     .from("users")
     .select(
-      "full_name, agency_id, sms_phone_number, reply_to_email, overdue_digest_threshold_days, profile_photo_path, logo_path, brand_color, office_address, office_city, office_state, office_zip, cell_phone, office_phone, fax_number, show_footer_name, license_numbers"
+      "full_name, agency_id, sms_phone_number, reply_to_email, overdue_digest_threshold_days, market_impact_report_frequency, profile_photo_path, logo_path, brand_color, office_address, office_city, office_state, office_zip, cell_phone, office_phone, fax_number, show_footer_name, license_numbers"
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -182,6 +183,8 @@ export default async function SettingsPage() {
         </div>
 
         <OverdueDigestForm thresholdDays={profile.overdue_digest_threshold_days} />
+
+        <MarketImpactDigestForm frequency={profile.market_impact_report_frequency} />
       </div>
 
       <div style={{ marginBottom: 40 }}>

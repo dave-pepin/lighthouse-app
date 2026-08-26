@@ -412,6 +412,41 @@ export async function updateOverdueDigestPreference(thresholdDays) {
   revalidatePath("/settings");
 }
 
+const MARKET_IMPACT_FREQUENCIES = ["quarterly", "semiannual", "annual"];
+
+// How often this agent wants a Market Impact Report digest — one email
+// listing every closed client whose closing anniversary has come back
+// around. null means "off" entirely. See
+// add-market-impact-digest-migration.sql / lib/marketImpactDigest.js.
+// Same "confirm identity, then mutate by id" pattern as
+// updateOverdueDigestPreference above.
+export async function updateMarketImpactReportFrequency(frequency) {
+  if (frequency !== null && !MARKET_IMPACT_FREQUENCIES.includes(frequency)) {
+    throw new Error("Invalid frequency.");
+  }
+
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error("Not signed in.");
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("users")
+    .update({ market_impact_report_frequency: frequency })
+    .eq("id", user.id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/settings");
+}
+
 // Self-serve: buys the agent a real, dedicated Twilio number and attaches
 // it to Lighthouse's shared, already-approved 10DLC campaign — no per-
 // agent compliance step. This is a real purchase (Twilio bills the
