@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createAgentLogin } from "@/lib/agentInvite";
+import { checkRateLimit } from "@/lib/rateLimit";
 import { revalidatePath } from "next/cache";
 
 // Lets any agent add a teammate to their own agency — no agency id is
@@ -29,6 +30,13 @@ export async function inviteTeamMember(fullName, email) {
   const { data: profile } = await supabase.from("users").select("agency_id").eq("id", user.id).maybeSingle();
   if (!profile?.agency_id) {
     throw new Error("Couldn't find your agency.");
+  }
+
+  // Same reasoning as inviteClient's limit (journey/[id]/actions.js) —
+  // this always requires a real signed-in agent session already, so
+  // nothing else stops a compromised account from spamming invites.
+  if (!(await checkRateLimit(`invite-team:${user.id}`, { limit: 5, windowSeconds: 600 }))) {
+    throw new Error("Too many invites sent recently. Please try again in a few minutes.");
   }
 
   const admin = createAdminClient();

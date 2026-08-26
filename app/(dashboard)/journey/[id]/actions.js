@@ -13,6 +13,7 @@ import { stagesForRole } from "@/components/CourseLine";
 import { generateText } from "@/lib/openai";
 import { createShortLink } from "@/lib/shortLinks";
 import { assertRealAgencyMember } from "@/lib/agencyAccess";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export async function updateClientInfo(
   journeyId,
@@ -799,6 +800,14 @@ export async function inviteClient(journeyId) {
   }
 
   await assertRealAgencyMember(supabase, user.id, journey.agency_id);
+
+  // Keyed by the agent's own id, not IP — this always requires a real
+  // signed-in agent session already, so nothing stops a compromised or
+  // malicious agent account from spamming re-invites at a client (or
+  // looping across every Journey in their agency) without this.
+  if (!(await checkRateLimit(`invite-client:${user.id}`, { limit: 5, windowSeconds: 600 }))) {
+    throw new Error("Too many invites sent recently. Please try again in a few minutes.");
+  }
 
   const wantsEmail = journey.update_preference === "email" || journey.update_preference === "both";
   const wantsSms = journey.update_preference === "sms" || journey.update_preference === "both";
