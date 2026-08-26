@@ -4,11 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Anchor } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { signIn } from "./actions";
 
 export default function LoginPage() {
   const router = useRouter();
-  const supabase = createClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -18,26 +17,16 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
+    try {
+      const { isAgent } = await signIn(email, password);
+      router.push(isAgent ? "/bridge" : "/client/portal");
+      router.refresh();
+    } catch (err) {
       setLoading(false);
-      setError(error.message);
+      setError(err.message || "Couldn't sign in.");
       return;
     }
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    const { data: profile } = await supabase
-      .from("users")
-      .select("id")
-      .eq("id", user.id)
-      .maybeSingle();
-
     setLoading(false);
-    router.push(profile ? "/bridge" : "/client/portal");
-    router.refresh();
   };
 
   return (
