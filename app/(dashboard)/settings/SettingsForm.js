@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Check, ImagePlus, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { updateAgencyResources, setAgencyResourceImage } from "./actions";
+import ResourceItemsList from "./ResourceItemsList";
 
 const labelStyle = {
   fontSize: 13,
@@ -159,7 +160,7 @@ function ResourceImage({ agencyId, field, url, onChanged }) {
   );
 }
 
-export default function SettingsForm({ agency, imageUrls = {} }) {
+export default function SettingsForm({ agency, imageUrls = {}, resourceItems = {} }) {
   const [trustedContractors, setTrustedContractors] = useState(agency?.trusted_contractors || "");
   const [maintenanceNote, setMaintenanceNote] = useState(agency?.maintenance_note || "");
   const [propertyTaxNote, setPropertyTaxNote] = useState(agency?.property_tax_note || "");
@@ -229,8 +230,9 @@ export default function SettingsForm({ agency, imageUrls = {} }) {
         <label style={labelStyle}>Trusted contractors</label>
         <p style={helpStyle}>
           Plumbers, electricians, handymen — whoever you&apos;d actually recommend. Left blank, clients
-          will see a note to ask you directly for a recommendation. You can also attach an image below
-          (a postcard, flyer, or printed guide).
+          will see a note to ask you directly for a recommendation. You can also attach a postcard image
+          below, plus any number of files or links (photos, videos, documents, or a link to another
+          resource).
         </p>
         <textarea
           value={trustedContractors}
@@ -244,14 +246,15 @@ export default function SettingsForm({ agency, imageUrls = {} }) {
           field="trusted_contractors_image"
           url={imageUrls.trustedContractorsImageUrl}
         />
+        <ResourceItemsList agencyId={agency.id} section="trusted_contractors" items={resourceItems.trusted_contractors} />
       </div>
 
       <div style={fieldGroupStyle}>
         <label style={labelStyle}>Seasonal maintenance</label>
         <p style={helpStyle}>
           A general checklist or reminder about upkeep through the year. Left blank, clients will see
-          generic seasonal tips. You can also attach an image below (a postcard, flyer, or printed
-          guide).
+          generic seasonal tips. You can also attach a postcard image below, plus any number of files or
+          links (photos, videos, documents, or a link to another resource).
         </p>
         <textarea
           value={maintenanceNote}
@@ -265,14 +268,15 @@ export default function SettingsForm({ agency, imageUrls = {} }) {
           field="maintenance_image"
           url={imageUrls.maintenanceImageUrl}
         />
+        <ResourceItemsList agencyId={agency.id} section="maintenance" items={resourceItems.maintenance} />
       </div>
 
       <div style={fieldGroupStyle}>
         <label style={labelStyle}>Property tax information</label>
         <p style={helpStyle}>
           Local assessor links, due dates, or anything specific to your area. Left blank, clients will
-          see a general pointer to their county assessor. You can also attach an image below (a
-          postcard, flyer, or printed guide).
+          see a general pointer to their county assessor. You can also attach a postcard image below,
+          plus any number of files or links (photos, videos, documents, or a link to another resource).
         </p>
         <textarea
           value={propertyTaxNote}
@@ -286,14 +290,15 @@ export default function SettingsForm({ agency, imageUrls = {} }) {
           field="property_tax_image"
           url={imageUrls.propertyTaxImageUrl}
         />
+        <ResourceItemsList agencyId={agency.id} section="property_tax" items={resourceItems.property_tax} />
       </div>
 
       <div style={fieldGroupStyle}>
         <label style={labelStyle}>Home value info (optional)</label>
         <p style={helpStyle}>
           Only shows up if you fill it in — a link or note about checking their home&apos;s value. Leave
-          blank to skip this section entirely for now. You can also attach an image below (a postcard,
-          flyer, or printed guide).
+          blank to skip this section entirely for now. You can also attach a postcard image below, plus
+          any number of files or links (photos, videos, documents, or a link to another resource).
         </p>
         <textarea
           value={homeValueNote}
@@ -307,6 +312,7 @@ export default function SettingsForm({ agency, imageUrls = {} }) {
           field="home_value_image"
           url={imageUrls.homeValueImageUrl}
         />
+        <ResourceItemsList agencyId={agency.id} section="home_value" items={resourceItems.home_value} />
       </div>
       </div>
 

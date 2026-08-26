@@ -148,6 +148,30 @@ export async function loadPortalData(supabase, admin, journey, { previewMode = f
             signResourceImage(agency.home_value_image),
           ]);
 
+        // Each section's extra files/links (see
+        // add-harbor-resource-items-migration.sql) — on top of the single
+        // note + single postcard image above.
+        const { data: resourceItemRows } = await admin
+          .from("harbor_resource_items")
+          .select("section, kind, file_type, storage_path, url, label")
+          .eq("agency_id", agentProfile.agency_id)
+          .order("created_at", { ascending: true });
+
+        const itemsBySection = { trusted_contractors: [], maintenance: [], property_tax: [], home_value: [] };
+        if (resourceItemRows && resourceItemRows.length > 0) {
+          await Promise.all(
+            resourceItemRows.map(async (row) => {
+              const signedUrl = row.kind === "file" ? await signResourceImage(row.storage_path) : null;
+              itemsBySection[row.section]?.push({
+                kind: row.kind,
+                fileType: row.file_type,
+                label: row.label,
+                url: row.kind === "link" ? row.url : signedUrl,
+              });
+            })
+          );
+        }
+
         harborResources = {
           trustedContractors: agency.trusted_contractors,
           maintenanceNote: agency.maintenance_note,
@@ -158,6 +182,10 @@ export async function loadPortalData(supabase, admin, journey, { previewMode = f
           maintenanceImageUrl,
           propertyTaxImageUrl,
           homeValueImageUrl,
+          trustedContractorsItems: itemsBySection.trusted_contractors,
+          maintenanceItems: itemsBySection.maintenance,
+          propertyTaxItems: itemsBySection.property_tax,
+          homeValueItems: itemsBySection.home_value,
         };
       }
     }

@@ -77,6 +77,8 @@ client ever touches (see `add-rate-limit-migration.sql`).
 
 Known open item from building this: the `property-photos`/`documents` **storage bucket** policies aren't tracked anywhere in this repo (dashboard-configured, unlike the table-level RLS above) — if a delegate's file upload/download doesn't work in practice, that's a separate bucket-policy fix, not a gap in the migration itself.
 
+**`harbor_resource_items`** (new) — per-section repository of extra files/links on top of each Harbor resource's single note + single postcard image on `agencies` (see `add-harbor-resource-items-migration.sql`). Agency members SELECT/INSERT/DELETE scoped to their own `agency_id`, same shape as `agency_delegates`'s agency-scoped policies — no delegate access at all (unlike the journey-scoped tables above), since this is agency-wide configuration, not per-Journey data. No UPDATE policy — items are add/remove only, never edited in place.
+
 ## Known gaps / follow-ups
 
 - `agencies`'s duplicate SELECT policy and `weekly_updates`'s redundant standalone SELECT (see above) are harmless but worth collapsing next time either table's policies are touched.

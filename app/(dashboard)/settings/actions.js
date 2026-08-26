@@ -95,6 +95,91 @@ export async function updateAgencyResources(agencyId, fields) {
   revalidatePath("/client/portal");
 }
 
+const RESOURCE_SECTIONS = ["trusted_contractors", "maintenance", "property_tax", "home_value"];
+const RESOURCE_FILE_TYPES = ["video", "photo", "document", "other"];
+
+// A small per-section repository of extra items on top of each Harbor
+// resource's single note + single postcard image (see
+// add-harbor-resource-items-migration.sql) — an agent can attach any
+// number of uploaded files (video/photo/document/other) or plain website
+// links per section. Uses the RLS-scoped client directly (unlike the
+// admin-client pattern above) since this table has real INSERT/DELETE
+// policies scoped to the caller's own agency.
+export async function addResourceLink(agencyId, section, label, url) {
+  if (!RESOURCE_SECTIONS.includes(section)) {
+    throw new Error("Invalid resource section.");
+  }
+  const trimmedLabel = label?.trim();
+  const trimmedUrl = url?.trim();
+  if (!trimmedLabel || !trimmedUrl) {
+    throw new Error("A label and a URL are both required.");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("harbor_resource_items").insert({
+    agency_id: agencyId,
+    section,
+    kind: "link",
+    label: trimmedLabel,
+    url: trimmedUrl,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/client/portal");
+}
+
+// Records a file an agent already uploaded (via the browser client,
+// straight to the harbor-resources bucket) as a resource item — mirrors
+// addResourceLink but for the "file" kind.
+export async function addResourceFile(agencyId, section, label, fileType, storagePath) {
+  if (!RESOURCE_SECTIONS.includes(section)) {
+    throw new Error("Invalid resource section.");
+  }
+  if (!RESOURCE_FILE_TYPES.includes(fileType)) {
+    throw new Error("Invalid file type.");
+  }
+  const trimmedLabel = label?.trim();
+  if (!trimmedLabel || !storagePath) {
+    throw new Error("A label and an uploaded file are both required.");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("harbor_resource_items").insert({
+    agency_id: agencyId,
+    section,
+    kind: "file",
+    label: trimmedLabel,
+    file_type: fileType,
+    storage_path: storagePath,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/client/portal");
+}
+
+// Removes a resource item's row. Doesn't clean up the underlying storage
+// object for file-kind items — same "leave it orphaned" convention as
+// setAgentBrandingImage/setAgencyResourceImage's remove path above.
+export async function removeResourceItem(itemId) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("harbor_resource_items").delete().eq("id", itemId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/client/portal");
+}
+
 // Assigns (or clears, if videoId is null) which library video should
 // automatically attach to a given template milestone — identified by
 // role + stage + label — for every new Journey of that role going

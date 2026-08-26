@@ -72,6 +72,31 @@ export default async function SettingsPage() {
     );
   }
 
+  // Each Harbor resource section's extra files/links (see
+  // add-harbor-resource-items-migration.sql) — file-kind items need a
+  // signed URL (same private harbor-resources bucket as the postcard
+  // images above), link-kind items just use their stored url as-is.
+  const { data: resourceItemRows } = await supabase
+    .from("harbor_resource_items")
+    .select("id, section, kind, file_type, storage_path, url, label, created_at")
+    .eq("agency_id", profile.agency_id)
+    .order("created_at", { ascending: true });
+
+  const resourceItems = { trusted_contractors: [], maintenance: [], property_tax: [], home_value: [] };
+  if (resourceItemRows && resourceItemRows.length > 0) {
+    await Promise.all(
+      resourceItemRows.map(async (row) => {
+        let signedUrl = null;
+        if (row.kind === "file" && row.storage_path) {
+          const { data } = await admin.storage.from("harbor-resources").createSignedUrl(row.storage_path, 60 * 60);
+          signedUrl = data?.signedUrl || null;
+        }
+        const item = { id: row.id, kind: row.kind, fileType: row.file_type, url: row.url, label: row.label, signedUrl };
+        resourceItems[row.section]?.push(item);
+      })
+    );
+  }
+
   // The reusable video library for this agency, plus which template
   // milestones (by role/stage/label) already have a default video
   // assigned — both needed to render the picker in MilestoneVideoDefaults.
@@ -183,7 +208,7 @@ export default async function SettingsPage() {
         <DelegateAccessForm grants={delegateGrants} />
       </div>
 
-      <SettingsForm agency={agency} imageUrls={imageUrls} />
+      <SettingsForm agency={agency} imageUrls={imageUrls} resourceItems={resourceItems} />
 
       <div style={{ marginTop: 40 }}>
         <h2 className="lh-display" style={{ fontSize: 20, fontWeight: 600, margin: "0 0 4px" }}>

@@ -1,8 +1,47 @@
 "use client";
 
 import { useEffect } from "react";
-import { CheckCircle2, Wrench, Landmark, Users, TrendingUp } from "lucide-react";
+import { CheckCircle2, Wrench, Landmark, Users, TrendingUp, Video, Image as ImageIcon, FileText, File, Link2, ExternalLink } from "lucide-react";
 import { markHarborSeen } from "./actions";
+
+const ITEM_ICONS = {
+  video: Video,
+  photo: ImageIcon,
+  document: FileText,
+  other: File,
+};
+
+// One file or link attached to a resource section (see
+// add-harbor-resource-items-migration.sql) — on top of that section's
+// single note + single postcard image, an agent can attach any number of
+// these.
+function ResourceItem({ item }) {
+  if (!item.url) return null;
+  const Icon = item.kind === "link" ? Link2 : ITEM_ICONS[item.fileType] || File;
+  return (
+    <a
+      href={item.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 7,
+        fontSize: 12.5,
+        color: "var(--lh-navy)",
+        textDecoration: "none",
+        padding: "6px 9px",
+        background: "var(--lh-paper)",
+        border: "1px solid var(--lh-line)",
+        borderRadius: 7,
+      }}
+    >
+      <Icon size={13} color="var(--lh-teal)" strokeWidth={1.75} style={{ flexShrink: 0 }} />
+      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{item.label}</span>
+      {item.kind === "link" && <ExternalLink size={11} color="var(--lh-slate-light)" style={{ flexShrink: 0 }} />}
+    </a>
+  );
+}
 
 // Shared with PortalView's persistent referral sidebar card, which
 // renders regardless of Harbor stage — DEFAULTS.referralNote and
@@ -32,7 +71,7 @@ function Beat({ justArrived, entranceDelay, className = "", style = {}, children
 // Server Component PortalView.js, and passing a raw component type as a
 // prop across that server/client boundary isn't allowed by React, only
 // a rendered element is.
-export function ResourceCard({ icon, title, imageUrl, children }) {
+export function ResourceCard({ icon, title, imageUrl, items, children }) {
   return (
     <div
       style={{
@@ -45,7 +84,7 @@ export function ResourceCard({ icon, title, imageUrl, children }) {
       }}
     >
       <span style={{ flexShrink: 0, marginTop: 1, display: "flex" }}>{icon}</span>
-      <div>
+      <div style={{ flex: 1, minWidth: 0 }}>
         <div className="lh-display" style={{ fontSize: 14, fontWeight: 600, color: "var(--lh-navy)", marginBottom: 3 }}>
           {title}
         </div>
@@ -64,6 +103,13 @@ export function ResourceCard({ icon, title, imageUrl, children }) {
               border: "1px solid var(--lh-line)",
             }}
           />
+        )}
+        {items && items.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 10 }}>
+            {items.map((item, i) => (
+              <ResourceItem key={i} item={item} />
+            ))}
+          </div>
         )}
       </div>
     </div>
@@ -170,6 +216,7 @@ export default function HarborSection({ journeyId, guideName, justArrived, resou
               icon={<Wrench size={17} color="var(--lh-teal)" strokeWidth={1.75} />}
               title="Seasonal maintenance"
               imageUrl={resources?.maintenanceImageUrl}
+              items={resources?.maintenanceItems}
             >
               {maintenanceNote}
             </ResourceCard>
@@ -177,6 +224,7 @@ export default function HarborSection({ journeyId, guideName, justArrived, resou
               icon={<Users size={17} color="var(--lh-teal)" strokeWidth={1.75} />}
               title="Trusted contractors"
               imageUrl={resources?.trustedContractorsImageUrl}
+              items={resources?.trustedContractorsItems}
             >
               {trustedContractors}
             </ResourceCard>
@@ -184,6 +232,7 @@ export default function HarborSection({ journeyId, guideName, justArrived, resou
               icon={<Landmark size={17} color="var(--lh-teal)" strokeWidth={1.75} />}
               title="Property tax information"
               imageUrl={resources?.propertyTaxImageUrl}
+              items={resources?.propertyTaxItems}
             >
               {propertyTaxNote}
             </ResourceCard>
@@ -192,6 +241,7 @@ export default function HarborSection({ journeyId, guideName, justArrived, resou
                 icon={<TrendingUp size={17} color="var(--lh-teal)" strokeWidth={1.75} />}
                 title="Your home's value"
                 imageUrl={resources?.homeValueImageUrl}
+                items={resources?.homeValueItems}
               >
                 {homeValueNote}
               </ResourceCard>
