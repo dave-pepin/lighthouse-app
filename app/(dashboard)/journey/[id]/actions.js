@@ -863,6 +863,18 @@ export async function inviteClient(journeyId) {
     throw new Error(`Couldn't create the invite: ${linkError.message}`);
   }
 
+  // Link the Journey to the invited Auth user as soon as it actually
+  // exists, before attempting any notification send below — a failed
+  // email/SMS send (e.g. hitting a provider's daily quota) used to throw
+  // before this ever ran, leaving a real Auth user created with no
+  // Journey linked to it, and a retry that still thought no invite had
+  // gone out yet. The notification failure is still surfaced to the
+  // agent below, just no longer blocks the link itself.
+  await supabase
+    .from("journeys")
+    .update({ client_user_id: linkData.user.id })
+    .eq("id", journeyId);
+
   const agentName = agentProfile?.full_name || "Your agent";
   const agentPhoneNumber = agentProfile?.sms_phone_number || null;
   const agentReplyToEmail = agentProfile?.reply_to_email || null;
@@ -913,16 +925,11 @@ export async function inviteClient(journeyId) {
     }
   }
 
+  revalidatePath(`/journey/${journeyId}`);
+
   if (errors.length > 0) {
     throw new Error(errors.join(" "));
   }
-
-  await supabase
-    .from("journeys")
-    .update({ client_user_id: linkData.user.id })
-    .eq("id", journeyId);
-
-  revalidatePath(`/journey/${journeyId}`);
 }
 
 // Removes every file under a journey's folder in a given storage bucket.
