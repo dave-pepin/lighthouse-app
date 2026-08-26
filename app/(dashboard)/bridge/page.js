@@ -23,18 +23,27 @@ export default async function BridgePage() {
 
   // One bulk query for every Journey's milestones, instead of one query
   // per card, so the current-milestone badge (same idea as the Journey
-  // page and client portal) works here too without an N+1 fetch.
+  // page and client portal) works here too without an N+1 fetch. Also
+  // picks up each Journey's own "Closing" milestone (a plain custom
+  // milestone agents add once under contract — see CLAUDE.md/Sort:
+  // Closing Date) for the Bridge's Closing Date sort, since Journeys
+  // don't have a dedicated closing-date field of their own until they
+  // actually reach Harbor.
   let currentMilestoneByJourneyId = {};
+  let closingDateByJourneyId = {};
   if (journeys && journeys.length > 0) {
     const { data: milestones } = await supabase
       .from("milestones")
-      .select("journey_id, label, done")
+      .select("journey_id, label, done, due_date")
       .in("journey_id", journeys.map((j) => j.id))
       .order("sort_order", { ascending: true });
 
     for (const m of milestones || []) {
       if (!m.done && !(m.journey_id in currentMilestoneByJourneyId)) {
         currentMilestoneByJourneyId[m.journey_id] = m.label;
+      }
+      if (m.due_date && m.label?.trim().toLowerCase() === "closing" && !(m.journey_id in closingDateByJourneyId)) {
+        closingDateByJourneyId[m.journey_id] = m.due_date;
       }
     }
   }
@@ -104,7 +113,11 @@ export default async function BridgePage() {
 
       {journeys && journeys.length > 0 ? (
         <JourneyList
-          journeys={journeys.map((j) => ({ ...j, currentMilestoneLabel: currentMilestoneByJourneyId[j.id] }))}
+          journeys={journeys.map((j) => ({
+            ...j,
+            currentMilestoneLabel: currentMilestoneByJourneyId[j.id],
+            closingDate: closingDateByJourneyId[j.id] || null,
+          }))}
         />
       ) : (
         <div style={{ color: "var(--lh-slate)", fontSize: 14 }}>No active Journeys yet. Add one to get started.</div>
