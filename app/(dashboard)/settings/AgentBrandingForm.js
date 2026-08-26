@@ -352,10 +352,12 @@ export default function AgentBrandingForm({
             squeezed by the left column, or the real footer's photo/
             divider/text/logo row wraps here in a way it wouldn't on the
             actual (much wider, sidebar-free) portal page, misrepresenting
-            the real layout. If the window's too narrow for both columns
-            side by side, this drops to its own full-width row below
-            instead of shrinking. */}
-        <div style={{ flexGrow: 1, flexShrink: 0, flexBasis: 500, minWidth: 500, alignSelf: "stretch" }}>
+            the real layout. Widened alongside the Settings page's own
+            maxWidth (see page.js) specifically to give this more real
+            room, rather than trying to force it to some other layout. If
+            the window's too narrow for both columns side by side, this
+            drops to its own full-width row below instead of shrinking. */}
+        <div style={{ flexGrow: 1, flexShrink: 0, flexBasis: 640, minWidth: 640, alignSelf: "stretch" }}>
           <label style={{ ...labelStyle, marginBottom: 8 }}>Preview</label>
           <div
             style={{

@@ -143,7 +143,7 @@ export default async function SettingsPage() {
   }
 
   return (
-    <div style={{ maxWidth: 1040, margin: "0 auto", padding: "36px 32px 60px" }}>
+    <div style={{ maxWidth: 1280, margin: "0 auto", padding: "36px 32px 60px" }}>
       <h1 className="lh-display" style={{ fontSize: 26, fontWeight: 600, margin: "0 0 4px" }}>
         Settings
       </h1>
