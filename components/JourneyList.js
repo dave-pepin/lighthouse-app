@@ -20,11 +20,15 @@ function lastNameOf(clientName) {
 // calls reorderJourneys; only dragging in Manual mode does.
 function sortedJourneys(journeys, sortMode) {
   if (sortMode === "closing") {
+    // closingDate comes from each Journey's own "Closing" milestone due
+    // date (see bridge/page.js) — Journeys don't have a closing-date
+    // field of their own until they actually reach Harbor, and the
+    // Bridge only ever shows active (non-Harbor) Journeys.
     return [...journeys].sort((a, b) => {
-      if (!a.closed_at && !b.closed_at) return 0;
-      if (!a.closed_at) return 1;
-      if (!b.closed_at) return -1;
-      return a.closed_at.localeCompare(b.closed_at);
+      if (!a.closingDate && !b.closingDate) return 0;
+      if (!a.closingDate) return 1;
+      if (!b.closingDate) return -1;
+      return a.closingDate.localeCompare(b.closingDate);
     });
   }
   if (sortMode === "name") {
