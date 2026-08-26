@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Compass, Anchor, LifeBuoy, ImagePlus, X, Settings, Users, Menu, GripVertical, ShieldCheck } from "lucide-react";
+import { Compass, Anchor, LifeBuoy, ImagePlus, X, Settings, Users, Menu, GripVertical, ShieldCheck, LogOut } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { addPropertyPhoto, deletePropertyPhoto, reorderPropertyPhotos } from "@/app/(dashboard)/journey/[id]/actions";
@@ -278,6 +278,33 @@ export default function Sidebar({
           );
         })}
 
+        {/* Mobile only — sits right under Settings so it's easy to find
+            without having to reach the very bottom of the drawer, past
+            the PHOTOS section/agency switcher below. Desktop signs out
+            via the sticky top-right pill instead (TopBarProfile.js), not
+            this. */}
+        <button
+          onClick={handleSignOut}
+          className="lh-focus lh-anim lh-mobile-signout-nav-item"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "9px 12px",
+            borderRadius: 8,
+            border: "none",
+            cursor: "pointer",
+            textAlign: "left",
+            background: "transparent",
+            color: "var(--lh-slate)",
+            fontSize: 14,
+            fontWeight: 500,
+          }}
+        >
+          <LogOut size={16} strokeWidth={1.75} />
+          Sign out
+        </button>
+
         {journeyId && (
           <div style={{ marginTop: 26, paddingLeft: 12, display: "flex", flexDirection: "column", gap: 8 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -478,21 +505,6 @@ export default function Sidebar({
           {initials}
         </div>
         <div style={{ fontSize: 13, fontWeight: 600 }}>{fullName}</div>
-        <button
-          onClick={handleSignOut}
-          className="lh-focus"
-          style={{
-            background: "none",
-            border: "none",
-            padding: 0,
-            fontSize: 12,
-            color: "var(--lh-slate)",
-            cursor: "pointer",
-            textDecoration: "underline",
-          }}
-        >
-          Sign out
-        </button>
       </div>
       </div>
     </>

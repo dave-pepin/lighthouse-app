@@ -126,6 +126,14 @@ body {
   display: none;
 }
 
+/* The nav-list "Sign out" item (see Sidebar.js) — mobile only, sitting
+   right under Settings so it's easy to find without reaching the very
+   bottom of the drawer. Desktop signs out via .lh-dashboard-topbar
+   instead. */
+.lh-mobile-signout-nav-item {
+  display: none;
+}
+
 @media (max-width: 860px) {
   .lh-dashboard-topbar {
     display: none;
@@ -133,6 +141,10 @@ body {
 
   .lh-sidebar-bottom-profile {
     display: block;
+  }
+
+  .lh-mobile-signout-nav-item {
+    display: flex;
   }
 }
 
