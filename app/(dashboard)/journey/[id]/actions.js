@@ -100,6 +100,20 @@ export async function setAnniversaryReminder(journeyId, enabled) {
   revalidatePath("/harbor");
 }
 
+// Pauses (or resumes) the overdue-milestone digest for one specific
+// Journey only — e.g. a listing temporarily off the market — without
+// deleting it or touching the digest for any other Journey. See
+// lib/overdueDigest.js.
+export async function setOverdueDigestPaused(journeyId, paused) {
+  const supabase = await createClient();
+  await supabase
+    .from("journeys")
+    .update({ overdue_digest_paused: paused })
+    .eq("id", journeyId);
+  revalidatePath(`/journey/${journeyId}`);
+  revalidatePath("/bridge");
+}
+
 const STATUS_LEVELS = ["on_course", "caution", "danger"];
 
 // Backs the sailboat status badge. needs_guidance is intentionally left

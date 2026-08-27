@@ -34,7 +34,7 @@ export async function GET(request) {
 
   const { data: journeys, error: journeysError } = await admin
     .from("journeys")
-    .select("id, agent_id, client_name")
+    .select("id, agent_id, client_name, overdue_digest_paused")
     .neq("stage", "Harbor");
   if (journeysError) {
     return NextResponse.json({ error: journeysError.message }, { status: 500 });

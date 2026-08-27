@@ -56,6 +56,7 @@ import {
   deleteDocument,
   setClosedDate,
   setAnniversaryReminder,
+  setOverdueDigestPaused,
   requestDocument,
   cancelDocumentRequest,
 } from "./actions";
@@ -765,6 +766,10 @@ export default function JourneyDetailClient({
 
   const handleToggleReminder = (e) => {
     startTransition(() => setAnniversaryReminder(journey.id, e.target.checked));
+  };
+
+  const handleToggleOverdueDigestPaused = (e) => {
+    startTransition(() => setOverdueDigestPaused(journey.id, e.target.checked));
   };
 
   return (
@@ -1651,6 +1656,30 @@ export default function JourneyDetailClient({
               <option value="date">Sort: Due Date</option>
             </select>
           </div>
+          {journey.stage !== "Harbor" && (
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 7,
+                fontSize: 12,
+                color: "var(--lh-slate)",
+                cursor: "pointer",
+                margin: "0 0 14px",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={!!journey.overdue_digest_paused}
+                onChange={handleToggleOverdueDigestPaused}
+                disabled={isPending}
+              />
+              Pause overdue reminders for this Journey{" "}
+              <span style={{ color: "var(--lh-slate-light)" }}>
+                (e.g. a listing temporarily off the market — doesn&apos;t affect the client&apos;s portal)
+              </span>
+            </label>
+          )}
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {(() => {
               const displayedMilestones =
