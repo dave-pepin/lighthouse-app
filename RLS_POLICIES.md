@@ -83,7 +83,8 @@ Unlike the table policies above, these were entirely dashboard-configured and un
 
 Fixed by `fix-storage-bucket-upload-policies-migration.sql`, using `storage.foldername(name)[1]` (the first path segment) to scope each bucket to match how the app actually names its upload paths:
 - **`documents`, `property-photos`** — Journey-scoped (`journeys.agency_id` = caller's agency), **plus** `is_active_agency_delegate()` — these two tables have delegate INSERT access at the table level (see above), so the storage policy needs the same OR clause or a delegate's upload would pass the `documents`/`property_photos` table INSERT but fail at the storage layer.
-- **`harbor-resources`, `milestone-videos`** — agency-scoped directly (the first path segment is the agency id itself, not a Journey id) — Settings-level content, no delegate access.
+- **`harbor-resources`** — agency-scoped directly (the first path segment is the agency id itself, not a Journey id) — Settings-level content, no delegate access.
+- **`milestone-videos`** — **both** agency-scoped (the reusable video library, `MilestoneVideoDefaults.js`, prefixes with the agency id) **and** Journey-scoped (attaching a video directly to one milestone from a Journey's own page, `JourneyDetailClient.js`, prefixes with that Journey's id instead) — two genuinely different upload paths into the same bucket. The initial fix only accounted for the first one and broke the second (`fix-milestone-videos-upload-policy-migration.sql` corrected it) — worth remembering if this bucket's policy is ever touched again.
 - **`agent-branding`** — user-scoped (`auth.uid()`) — personal to each agent, no agency/delegate concept at all.
 
 **To refresh this section**, run the same query as above but scoped to storage:
