@@ -20,6 +20,7 @@ import {
   Video,
   Sparkles,
   Eye,
+  Archive,
 } from "lucide-react";
 import CourseLine, { stagesForRole, stageLabel } from "@/components/CourseLine";
 import { reorderById } from "@/lib/reorder";
@@ -57,6 +58,7 @@ import {
   setClosedDate,
   setAnniversaryReminder,
   setOverdueDigestPaused,
+  setCancelled,
   requestDocument,
   cancelDocumentRequest,
 } from "./actions";
@@ -772,6 +774,10 @@ export default function JourneyDetailClient({
     startTransition(() => setOverdueDigestPaused(journey.id, e.target.checked));
   };
 
+  const handleToggleCancelled = (e) => {
+    startTransition(() => setCancelled(journey.id, e.target.checked));
+  };
+
   return (
     <div style={{ maxWidth: 1040, margin: "0 auto", padding: "36px 32px 60px" }}>
       {!canSendMessages && (
@@ -791,6 +797,26 @@ export default function JourneyDetailClient({
           <Eye size={13} />
           You&apos;re covering this agency — sending messages (invites, updates, document requests) is
           disabled.
+        </div>
+      )}
+      {journey.cancelled && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "9px 14px",
+            background: "var(--lh-fog)",
+            border: "1px solid var(--lh-line)",
+            color: "var(--lh-slate)",
+            fontSize: 12.5,
+            borderRadius: 8,
+            marginBottom: 18,
+          }}
+        >
+          <Archive size={13} />
+          This Journey is cancelled — it&apos;s hidden from the Bridge. Uncheck &quot;Cancel this Journey&quot;
+          below to bring it back.
         </div>
       )}
       <button
@@ -1677,6 +1703,30 @@ export default function JourneyDetailClient({
               Pause overdue reminders for this Journey{" "}
               <span style={{ color: "var(--lh-slate-light)" }}>
                 (e.g. a listing temporarily off the market — doesn&apos;t affect the client&apos;s portal)
+              </span>
+            </label>
+          )}
+          {journey.stage !== "Harbor" && (
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 7,
+                fontSize: 12,
+                color: "var(--lh-slate)",
+                cursor: "pointer",
+                margin: "0 0 14px",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={!!journey.cancelled}
+                onChange={handleToggleCancelled}
+                disabled={isPending}
+              />
+              Cancel this Journey{" "}
+              <span style={{ color: "var(--lh-slate-light)" }}>
+                (e.g. a client pausing until a later season — moves it to Cancelled Journeys; uncheck anytime to bring it back to the Bridge)
               </span>
             </label>
           )}

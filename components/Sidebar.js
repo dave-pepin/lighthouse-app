@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Compass, Anchor, LifeBuoy, ImagePlus, X, Settings, Users, Menu, GripVertical, ShieldCheck, LogOut } from "lucide-react";
+import { Compass, Anchor, LifeBuoy, Archive, ImagePlus, X, Settings, Users, Menu, GripVertical, ShieldCheck, LogOut } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { addPropertyPhoto, deletePropertyPhoto, reorderPropertyPhotos } from "@/app/(dashboard)/journey/[id]/actions";
@@ -155,6 +155,7 @@ export default function Sidebar({
   const items = [
     { key: "bridge", label: "The Bridge", icon: Compass, href: "/bridge" },
     { key: "harbor", label: "The Harbor", icon: LifeBuoy, href: "/harbor" },
+    { key: "cancelled", label: "Cancelled Journeys", icon: Archive, href: "/cancelled" },
     { key: "team", label: "Team", icon: Users, href: "/team" },
     { key: "settings", label: "Settings", icon: Settings, href: "/settings" },
     ...(isPlatformOwner ? [{ key: "admin", label: "Admin", icon: ShieldCheck, href: "/admin" }] : []),

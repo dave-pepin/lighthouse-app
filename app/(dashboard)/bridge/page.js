@@ -18,6 +18,7 @@ export default async function BridgePage() {
     .select("*")
     .eq("agency_id", effectiveAgency.agencyId)
     .neq("stage", "Harbor")
+    .eq("cancelled", false)
     .order("bridge_sort_order", { ascending: true, nullsFirst: false })
     .order("last_activity_at", { ascending: false });
 

@@ -114,6 +114,23 @@ export async function setOverdueDigestPaused(journeyId, paused) {
   revalidatePath("/bridge");
 }
 
+// Cancels (or reactivates) a Journey — e.g. a client pausing until a
+// later season — without deleting it or touching its stage/milestones.
+// Cancelling also pauses the overdue digest for it (no reason to keep
+// nagging about a cancelled deal); reactivating doesn't automatically
+// un-pause that back, since it may have been paused separately on
+// purpose. See add-cancelled-journeys-migration.sql.
+export async function setCancelled(journeyId, cancelled) {
+  const supabase = await createClient();
+  await supabase
+    .from("journeys")
+    .update(cancelled ? { cancelled: true, overdue_digest_paused: true } : { cancelled: false })
+    .eq("id", journeyId);
+  revalidatePath(`/journey/${journeyId}`);
+  revalidatePath("/bridge");
+  revalidatePath("/cancelled");
+}
+
 const STATUS_LEVELS = ["on_course", "caution", "danger"];
 
 // Backs the sailboat status badge. needs_guidance is intentionally left
