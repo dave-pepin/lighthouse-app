@@ -456,3 +456,134 @@ body {
     animation: none;
   }
 }
+
+/* Public marketing landing page (app/page.js, components/LandingPage.js)
+   — the only page in the app meant for a logged-out, non-agent visitor,
+   so its layout rules live here rather than assuming the dashboard's
+   sidebar shell or the portal's narrower column widths. */
+.lh-landing-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 32px;
+  border-bottom: 1px solid var(--lh-line);
+  background: var(--lh-paper);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.lh-landing-section {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 72px 32px;
+}
+
+.lh-landing-hero {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 48px;
+  align-items: center;
+}
+
+.lh-landing-trust-strip {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 28px;
+}
+
+.lh-landing-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+}
+
+.lh-landing-features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px;
+}
+
+.lh-landing-pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  align-items: stretch;
+}
+
+.lh-landing-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 28px 32px 40px;
+}
+
+@media (max-width: 860px) {
+  .lh-landing-nav {
+    padding: 14px 20px;
+  }
+
+  .lh-landing-section {
+    padding: 48px 20px;
+  }
+
+  .lh-landing-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .lh-landing-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .lh-landing-pricing-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .lh-landing-footer {
+    padding: 24px 20px 32px;
+    justify-content: center;
+    text-align: center;
+  }
+}
+
+/* FAQ accordion — same CSS-only checkbox+label pattern as
+   .lh-progress-checkbox above, but defaults closed instead of open. */
+.lh-faq-checkbox {
+  display: none;
+}
+
+.lh-faq-question {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.lh-faq-chevron {
+  color: var(--lh-slate);
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.lh-faq-answer {
+  display: none;
+  padding: 0 0 18px;
+  color: var(--lh-slate);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.lh-faq-checkbox:checked ~ .lh-faq-question .lh-faq-chevron {
+  transform: rotate(180deg);
+}
+
+.lh-faq-checkbox:checked ~ .lh-faq-answer {
+  display: block;
+}
