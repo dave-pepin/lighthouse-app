@@ -596,3 +596,20 @@ body {
 .lh-faq-checkbox:checked ~ .lh-faq-answer {
   display: block;
 }
+
+/* LandingDemo.js's 3-frame animated mockup — all frames stack in the
+   same box (absolute, inset to the container's own padding) and
+   crossfade via opacity, so the container never changes height as the
+   frames cycle. */
+.lh-demo-frame {
+  position: absolute;
+  inset: 0;
+  padding: 22px 24px;
+  transition: opacity 500ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lh-demo-frame {
+    transition: none;
+  }
+}
