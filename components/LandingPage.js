@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import CourseLine from "./CourseLine";
 import StageTag from "./StageTag";
+import LandingDemo from "./LandingDemo";
 
 const primaryButtonStyle = {
   display: "inline-flex",
@@ -320,44 +321,11 @@ export default function LandingPage() {
           ))}
         </div>
 
-        {/* A real sample of what step 3 actually produces — same idea as
-            the hero's product preview, made concrete for this specific
-            claim rather than left abstract. */}
-        <div style={{ marginTop: 48, display: "flex", justifyContent: "center" }}>
-          <div style={{ maxWidth: 380, width: "100%" }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                marginBottom: 10,
-                justifyContent: "center",
-                fontSize: 12.5,
-                color: "var(--lh-teal)",
-                fontWeight: 600,
-              }}
-            >
-              <CheckCircle2 size={14} /> Reviewed and approved by the agent, then sent
-            </div>
-            <div
-              style={{
-                background: "var(--lh-teal)",
-                color: "white",
-                borderRadius: "18px 18px 4px 18px",
-                padding: "14px 18px",
-                fontSize: 14.5,
-                lineHeight: 1.55,
-              }}
-            >
-              Hi Sarah! This is Lighthouse with an update from your agent: Inspection is complete and
-              everything looked great. Next up is the appraisal, and we're still on track for your
-              March 15 closing. Your agent will be calling shortly to answer any additional questions
-              you may have.
-            </div>
-            <div style={{ fontSize: 12, color: "var(--lh-slate-light)", marginTop: 8, textAlign: "right" }}>
-              Jane · sent by email &amp; text
-            </div>
-          </div>
+        {/* A real, animated walkthrough of the 3 steps above — built from
+            the same real UI components the product uses, not a screen
+            recording. See components/LandingDemo.js. */}
+        <div style={{ marginTop: 48 }}>
+          <LandingDemo />
         </div>
       </div>
 
