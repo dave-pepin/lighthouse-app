@@ -112,7 +112,7 @@ function FaqItem({ question, children, defaultOpen = false }) {
   );
 }
 
-function PricingCard({ plan, forWhom, price, features, cta, ctaHref, featured }) {
+function PricingCard({ plan, forWhom, price, features, cta, ctaHref, featured, badge }) {
   return (
     <div
       style={{
@@ -124,7 +124,7 @@ function PricingCard({ plan, forWhom, price, features, cta, ctaHref, featured })
         position: "relative",
       }}
     >
-      {featured && (
+      {badge && (
         <span
           className="lh-mono"
           style={{
@@ -140,7 +140,7 @@ function PricingCard({ plan, forWhom, price, features, cta, ctaHref, featured })
             borderRadius: 20,
           }}
         >
-          MOST POPULAR
+          {badge}
         </span>
       )}
       <div>
@@ -393,36 +393,33 @@ export default function LandingPage() {
       {/* Pricing */}
       <div className="lh-landing-section">
         <h2 className="lh-display" style={{ ...sectionHeadingStyle, marginBottom: 8 }}>
-          Simple pricing, built to grow with your business.
+          One simple price. Solo or with your whole team.
         </h2>
-        <p style={sectionSubStyle}>Every plan includes the full feature set — pricing scales with your team, not your features.</p>
-        <div className="lh-landing-pricing-grid">
+        <p style={sectionSubStyle}>
+          No per-seat fees, no separate team tier — invite as many teammates as you need at no extra
+          cost.
+        </p>
+        <div style={{ maxWidth: 380, margin: "0 auto" }}>
           <PricingCard
-            plan="Solo"
-            forWhom="Individual agents"
-            price="$XX/mo"
-            features={["Up to XX active journeys", "Full feature set", "Email & SMS updates"]}
-            cta="Get Started"
-            ctaHref="/signup"
-          />
-          <PricingCard
-            plan="Team"
-            forWhom="Small teams & brokerages"
-            price="$XX/mo per seat"
-            features={["Everything in Solo", "Team management", "Shared resources"]}
+            plan="Lighthouse"
+            forWhom="Every agent, solo or leading a team"
+            price="$9.99/mo"
+            features={[
+              "Full feature set — no limits by plan",
+              "Invite unlimited team members, no per-seat fees",
+              "Email & SMS updates",
+            ]}
             cta="Get Started"
             ctaHref="/signup"
             featured
           />
-          <PricingCard
-            plan="Brokerage"
-            forWhom="Larger agencies"
-            price="Custom"
-            features={["Volume pricing", "Dedicated support", "Everything in Team"]}
-            cta="Contact Us"
-            ctaHref="mailto:dave@davepepin.com"
-          />
         </div>
+        <p style={{ fontSize: 14, color: "var(--lh-slate)", textAlign: "center", marginTop: 24 }}>
+          Running a larger brokerage?{" "}
+          <a href="mailto:dave@davepepin.com" className="lh-focus" style={{ color: "var(--lh-navy)", fontWeight: 600 }}>
+            Call for volume pricing and dedicated support.
+          </a>
+        </p>
       </div>
 
       {/* FAQ */}
