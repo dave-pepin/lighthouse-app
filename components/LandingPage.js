@@ -289,8 +289,8 @@ export default function LandingPage() {
             },
             {
               n: "3",
-              title: "Send a weekly update in one click",
-              body: "Draft a quick note — Lighthouse can even help write it in your voice — and it goes out by email and text, automatically.",
+              title: "Review it, then send",
+              body: "Draft a quick note — Lighthouse can even help write it in your voice. Nothing reaches your client until you approve it, then it goes out by email and text in one click.",
             },
           ].map((step) => (
             <div key={step.n} style={{ textAlign: "center" }}>
@@ -318,6 +318,45 @@ export default function LandingPage() {
               <p style={{ fontSize: 14, color: "var(--lh-slate)", lineHeight: 1.6, margin: 0 }}>{step.body}</p>
             </div>
           ))}
+        </div>
+
+        {/* A real sample of what step 3 actually produces — same idea as
+            the hero's product preview, made concrete for this specific
+            claim rather than left abstract. */}
+        <div style={{ marginTop: 48, display: "flex", justifyContent: "center" }}>
+          <div style={{ maxWidth: 380, width: "100%" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                marginBottom: 10,
+                justifyContent: "center",
+                fontSize: 12.5,
+                color: "var(--lh-teal)",
+                fontWeight: 600,
+              }}
+            >
+              <CheckCircle2 size={14} /> Reviewed and approved by the agent, then sent
+            </div>
+            <div
+              style={{
+                background: "var(--lh-teal)",
+                color: "white",
+                borderRadius: "18px 18px 4px 18px",
+                padding: "14px 18px",
+                fontSize: 14.5,
+                lineHeight: 1.55,
+              }}
+            >
+              Hi Sarah! Quick update — inspection is complete and everything looked great. Next up is
+              the appraisal, and we're still on track for your March 15 closing. Let me know if you
+              have any questions!
+            </div>
+            <div style={{ fontSize: 12, color: "var(--lh-slate-light)", marginTop: 8, textAlign: "right" }}>
+              Jane · sent by email &amp; text
+            </div>
+          </div>
         </div>
       </div>
 
@@ -372,18 +411,31 @@ export default function LandingPage() {
       {/* Security */}
       <div className="lh-landing-section">
         <h2 className="lh-display" style={{ ...sectionHeadingStyle, marginBottom: 8 }}>
-          Your clients' data is protected, always.
+          Protected data. And you're always in control.
         </h2>
         <div style={{ maxWidth: 640, margin: "0 auto" }}>
           <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 14 }}>
             {[
-              "All data is encrypted and access-controlled — agents only ever see their own agency's clients.",
-              "Payments are processed securely through Stripe; Lighthouse never stores card details.",
-              "Client portal access is scoped per-transaction — no client can see another client's information.",
-            ].map((line) => (
-              <li key={line} style={{ display: "flex", gap: 10, fontSize: 15, color: "var(--lh-navy-soft)", lineHeight: 1.6 }}>
-                <Lock size={17} color="var(--lh-teal)" style={{ flexShrink: 0, marginTop: 3 }} />
-                {line}
+              {
+                icon: CheckCircle2,
+                text: "Lighthouse never contacts a client on its own — you create and approve every message before anything sends. No surprises, no auto-pilot.",
+              },
+              {
+                icon: Lock,
+                text: "All data is encrypted and access-controlled — agents only ever see their own agency's clients.",
+              },
+              {
+                icon: Lock,
+                text: "Payments are processed securely through Stripe; Lighthouse never stores card details.",
+              },
+              {
+                icon: Lock,
+                text: "Client portal access is scoped per-transaction — no client can see another client's information.",
+              },
+            ].map(({ icon: Icon, text }) => (
+              <li key={text} style={{ display: "flex", gap: 10, fontSize: 15, color: "var(--lh-navy-soft)", lineHeight: 1.6 }}>
+                <Icon size={17} color="var(--lh-teal)" style={{ flexShrink: 0, marginTop: 3 }} />
+                {text}
               </li>
             ))}
           </ul>
