@@ -349,9 +349,10 @@ export default function LandingPage() {
                 lineHeight: 1.55,
               }}
             >
-              Hi Sarah! Quick update — inspection is complete and everything looked great. Next up is
-              the appraisal, and we're still on track for your March 15 closing. Let me know if you
-              have any questions!
+              Hi Sarah! This is Lighthouse with an update from your agent: Inspection is complete and
+              everything looked great. Next up is the appraisal, and we're still on track for your
+              March 15 closing. Your agent will be calling shortly to answer any additional questions
+              you may have.
             </div>
             <div style={{ fontSize: 12, color: "var(--lh-slate-light)", marginTop: 8, textAlign: "right" }}>
               Jane · sent by email &amp; text
