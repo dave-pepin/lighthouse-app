@@ -499,10 +499,19 @@ body {
   gap: 28px;
 }
 
+/* Flexbox rather than grid, deliberately — a trailing incomplete row (5
+   feature cards wraps to 3 + 2) centers itself under the row above
+   instead of hugging the left edge the way CSS grid's auto-fit would. */
 .lh-landing-features-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 18px;
+}
+
+.lh-landing-features-grid > * {
+  flex: 1 1 260px;
+  max-width: 320px;
 }
 
 .lh-landing-pricing-grid {
