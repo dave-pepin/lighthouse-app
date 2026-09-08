@@ -404,7 +404,9 @@ export default function LandingPage() {
           </FeatureCard>
           <FeatureCard icon={<Anchor size={17} color="var(--lh-teal)" />} title="The Harbor">
             After closing, clients don't just disappear — they land in an ongoing home-ownership hub
-            with resources, reminders, and your continued presence.
+            with reminders and your continued presence. Populate it yourself with your own
+            branded guides, videos, and links — trusted contractors, seasonal maintenance, property
+            tax info, home value tools, whatever you want your name attached to.
           </FeatureCard>
         </div>
       </div>
