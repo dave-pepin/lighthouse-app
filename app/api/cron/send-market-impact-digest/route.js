@@ -5,6 +5,10 @@ import { sendEmailBatch, buildAgentEmail } from "@/lib/notify";
 import { findMarketImpactDigestRecipients, buildMarketImpactDigestMessage } from "@/lib/marketImpactDigest";
 import { runWithConcurrencyLimit } from "@/lib/concurrency";
 
+// Vercel's default function timeout is too short for a large batch at
+// scale — this is the Pro plan's max for a standard serverless function.
+export const maxDuration = 300;
+
 // Same shape as send-overdue-digest's limiter — see that route for why.
 const CONCURRENCY_LIMIT = 10;
 
