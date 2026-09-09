@@ -5,6 +5,10 @@ import { buildWeeklyUpdateEmail, dispatchWeeklyUpdateSms } from "@/lib/weeklyUpd
 import { sendEmailBatch, buildAgentEmail, sendAgentEmail } from "@/lib/notify";
 import { runWithConcurrencyLimit } from "@/lib/concurrency";
 
+// Vercel's default function timeout is too short for a large batch at
+// scale — this is the Pro plan's max for a standard serverless function.
+export const maxDuration = 300;
+
 // Bounds how many journey lookups/DB writes/SMS sends run at once — high
 // enough to matter at "hundreds of agents" scale, low enough to stay well
 // under Supabase's and Twilio's own per-second limits. Client emails don't

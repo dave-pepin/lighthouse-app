@@ -5,6 +5,10 @@ import { sendEmailBatch, buildAgentEmail } from "@/lib/notify";
 import { findOverdueDigestRecipients, buildDigestMessage } from "@/lib/overdueDigest";
 import { runWithConcurrencyLimit } from "@/lib/concurrency";
 
+// Vercel's default function timeout is too short for a large batch at
+// scale — this is the Pro plan's max for a standard serverless function.
+export const maxDuration = 300;
+
 // Bounds how many recipients' DB writes run at once — the emails
 // themselves don't go through this limiter, see sendEmailBatch, which
 // batches many recipients into far fewer Resend calls instead of one per
