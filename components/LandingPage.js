@@ -419,8 +419,8 @@ export default function LandingPage() {
           One simple price. Solo or with your whole team.
         </h2>
         <p style={sectionSubStyle}>
-          No per-seat fees, no separate team tier — invite as many teammates as you need at no extra
-          cost.
+          Every agent has their own $9.99/mo account. Team leads can invite teammates in at no
+          extra cost, so the whole team shares the same client Journeys.
         </p>
         <div style={{ maxWidth: 380, margin: "0 auto" }}>
           <PricingCard
@@ -429,8 +429,9 @@ export default function LandingPage() {
             price="$9.99/mo"
             features={[
               "Full feature set — no limits by plan",
-              "Invite unlimited team members, no per-seat fees",
+              "Invite teammates into your team at no extra cost",
               "Email & SMS updates",
+              "Customizable overdue-milestone reminders",
             ]}
             cta="Get Started"
             ctaHref="/signup"
