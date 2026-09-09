@@ -50,6 +50,7 @@ export default function StageTag({ stage, statusLevel = "on_course", currentLabe
         letterSpacing: "0.03em",
         transition: "background 200ms ease",
         maxWidth: "100%",
+        minWidth: 0,
       }}
     >
       <Anchor size={13} strokeWidth={2} style={{ flexShrink: 0 }} />
