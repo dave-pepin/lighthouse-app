@@ -186,11 +186,11 @@ export default function LandingDemo() {
                   borderRadius: 9,
                 }}
               >
-                <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "baseline", gap: 6 }}>
-                  <span className="lh-display" style={{ fontSize: 13, fontWeight: 600 }}>
+                <div style={{ flex: "1 1 100px", minWidth: 0 }}>
+                  <div className="lh-display" style={{ fontSize: 13, fontWeight: 600 }}>
                     {j.name}
-                  </span>
-                  <span style={{ fontSize: 11, color: "var(--lh-slate)" }}>{j.role}</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: "var(--lh-slate)", marginTop: 1 }}>{j.role}</div>
                 </div>
                 <StageTag stage={j.stage} statusLevel={j.statusLevel} />
               </div>
