@@ -228,7 +228,7 @@ export default function LandingPage() {
               what a client's Journey actually looks like. */}
           <div style={{ ...cardStyle, padding: "22px 24px 26px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ flex: "1 1 100px", minWidth: 0 }}>
                 <div className="lh-display" style={{ fontSize: 17, fontWeight: 600 }}>
                   Sarah Chen
                 </div>
