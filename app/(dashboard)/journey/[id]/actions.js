@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import * as Sentry from "@sentry/nextjs";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-import { sendUpdateSms, sendInviteEmail, sendInviteSms } from "@/lib/notify";
+import { sendUpdateSms, sendInviteEmail, sendInviteSms, sendTitleCompanyInviteEmail } from "@/lib/notify";
 import { dispatchWeeklyUpdate } from "@/lib/weeklyUpdateSend";
 import { dispatchDocumentRequestNotice } from "@/lib/documentRequestNotify";
 import { toE164 } from "@/lib/phone";
@@ -993,6 +993,11 @@ export async function deleteJourney(journeyId) {
     throw new Error("Couldn't find that Journey.");
   }
 
+  const { data: titleCompanyContacts } = await supabase
+    .from("title_company_contacts")
+    .select("user_id")
+    .eq("journey_id", journeyId);
+
   await Promise.all([
     supabase.from("milestones").delete().eq("journey_id", journeyId),
     supabase.from("documents").delete().eq("journey_id", journeyId),
@@ -1014,6 +1019,15 @@ export async function deleteJourney(journeyId) {
       await admin.auth.admin.deleteUser(journey.client_user_id);
     } catch (err) {
       // Ignore — the login being left behind isn't worth blocking on.
+      Sentry.captureException(err);
+    }
+  }
+
+  for (const contact of titleCompanyContacts || []) {
+    if (!contact.user_id) continue;
+    try {
+      await admin.auth.admin.deleteUser(contact.user_id);
+    } catch (err) {
       Sentry.captureException(err);
     }
   }
@@ -1060,6 +1074,240 @@ export async function setClientAccess(journeyId, revoke) {
 
   if (error) {
     throw new Error(error.message);
+  }
+
+  revalidatePath(`/journey/${journeyId}`);
+}
+
+// Up to two title company contacts can be added to a Journey (split
+// closings in this market often have a buyer's-side and seller's-side
+// title company — see add-title-company-contacts-migration.sql). Adding a
+// contact never messages anyone; inviteTitleCompanyContact below is the
+// separate, explicit trigger for that, same "opt-in, not automatic" rule
+// as inviteClient.
+export async function addTitleCompanyContact(journeyId, { companyName, contactName, email, phone }) {
+  const supabase = await createClient();
+
+  const trimmedCompany = companyName?.trim();
+  const trimmedEmail = email?.trim();
+  if (!trimmedCompany) {
+    throw new Error("A company name is required.");
+  }
+  if (!trimmedEmail) {
+    throw new Error("An email address is required to invite a title company contact.");
+  }
+
+  const { count } = await supabase
+    .from("title_company_contacts")
+    .select("id", { count: "exact", head: true })
+    .eq("journey_id", journeyId);
+
+  if ((count || 0) >= 2) {
+    throw new Error("This Journey already has two title company contacts.");
+  }
+
+  const { error } = await supabase.from("title_company_contacts").insert({
+    journey_id: journeyId,
+    company_name: trimmedCompany,
+    contact_name: contactName?.trim() || null,
+    email: trimmedEmail,
+    phone: phone?.trim() || null,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath(`/journey/${journeyId}`);
+}
+
+export async function updateTitleCompanyContact(contactId, journeyId, { companyName, contactName, email, phone }) {
+  const supabase = await createClient();
+
+  const trimmedCompany = companyName?.trim();
+  const trimmedEmail = email?.trim();
+  if (!trimmedCompany) {
+    throw new Error("A company name is required.");
+  }
+  if (!trimmedEmail) {
+    throw new Error("An email address is required.");
+  }
+
+  const { error } = await supabase
+    .from("title_company_contacts")
+    .update({
+      company_name: trimmedCompany,
+      contact_name: contactName?.trim() || null,
+      email: trimmedEmail,
+      phone: phone?.trim() || null,
+    })
+    .eq("id", contactId)
+    .eq("journey_id", journeyId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath(`/journey/${journeyId}`);
+}
+
+// Removes a title company contact and, if they'd ever logged in, deletes
+// their Auth login too — best-effort, same reasoning as deleteJourney's
+// client cleanup.
+export async function removeTitleCompanyContact(contactId, journeyId) {
+  const supabase = await createClient();
+
+  const { data: contact } = await supabase
+    .from("title_company_contacts")
+    .select("id, user_id")
+    .eq("id", contactId)
+    .eq("journey_id", journeyId)
+    .maybeSingle();
+
+  if (!contact) {
+    throw new Error("Couldn't find that title company contact.");
+  }
+
+  if (contact.user_id) {
+    try {
+      const admin = createAdminClient();
+      await admin.auth.admin.deleteUser(contact.user_id);
+    } catch (err) {
+      Sentry.captureException(err);
+    }
+  }
+
+  const { error } = await supabase.from("title_company_contacts").delete().eq("id", contactId);
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath(`/journey/${journeyId}`);
+}
+
+// Sends (or resends) the title company's portal invite — the deliberate,
+// explicit trigger the CLAUDE.md client-messaging rule requires, kept
+// entirely separate from inviteClient above so inviting one never touches
+// the other. Mirrors inviteClient closely, but email-only: title company
+// contacts are business accounts, not consumers, so none of the Twilio
+// A2P SMS opt-in/consent machinery applies here.
+export async function inviteTitleCompanyContact(contactId, journeyId) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data: journey } = await supabase
+    .from("journeys")
+    .select("agency_id, agent_id, property_address, client_name")
+    .eq("id", journeyId)
+    .single();
+
+  if (!journey) {
+    throw new Error("Couldn't find that Journey.");
+  }
+
+  await assertRealAgencyMember(supabase, user.id, journey.agency_id);
+
+  const { data: contact } = await supabase
+    .from("title_company_contacts")
+    .select("id, company_name, email, user_id")
+    .eq("id", contactId)
+    .eq("journey_id", journeyId)
+    .maybeSingle();
+
+  if (!contact) {
+    throw new Error("Couldn't find that title company contact.");
+  }
+
+  // Keyed by the agent's own id, same reasoning as inviteClient's limit.
+  if (!(await checkRateLimit(`invite-title-company:${user.id}`, { limit: 5, windowSeconds: 600 }))) {
+    throw new Error("Too many invites sent recently. Please try again in a few minutes.");
+  }
+
+  const { data: agentProfile } = await supabase
+    .from("users")
+    .select("full_name, reply_to_email")
+    .eq("id", journey.agent_id)
+    .single();
+
+  const h = await headers();
+  const origin = `${h.get("x-forwarded-proto") || "http"}://${h.get("host")}`;
+  const redirectTo = `${origin}/title/set-password`;
+
+  const admin = createAdminClient();
+  const isReinvite = !!contact.user_id;
+
+  let { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
+    type: isReinvite ? "magiclink" : "invite",
+    email: contact.email,
+    options: { redirectTo },
+  });
+
+  // Same fallback as inviteClient — this email may already have an Auth
+  // account (e.g. this title company was already invited on a different
+  // Journey).
+  if (linkError && !isReinvite) {
+    ({ data: linkData, error: linkError } = await admin.auth.admin.generateLink({
+      type: "magiclink",
+      email: contact.email,
+      options: { redirectTo },
+    }));
+  }
+
+  if (linkError) {
+    throw new Error(`Couldn't create the invite: ${linkError.message}`);
+  }
+
+  await supabase
+    .from("title_company_contacts")
+    .update({ user_id: linkData.user.id, invited_at: new Date().toISOString() })
+    .eq("id", contactId);
+
+  const agentName = agentProfile?.full_name || "Your agent";
+  const agentReplyToEmail = agentProfile?.reply_to_email || null;
+  const inviteLink = await createShortLink(admin, linkData.properties.action_link, origin);
+
+  await sendTitleCompanyInviteEmail({
+    to: contact.email,
+    agentName,
+    companyName: contact.company_name,
+    propertyAddress: journey.property_address || journey.client_name,
+    inviteLink,
+    replyToEmail: agentReplyToEmail,
+  });
+
+  revalidatePath(`/journey/${journeyId}`);
+}
+
+// Blocks (or restores) a title company contact's portal login, without
+// touching the contact record itself — same reasoning and mechanics as
+// setClientAccess above.
+export async function setTitleCompanyAccess(contactId, journeyId, revoke) {
+  const supabase = await createClient();
+
+  const { data: contact } = await supabase
+    .from("title_company_contacts")
+    .select("id, user_id")
+    .eq("id", contactId)
+    .eq("journey_id", journeyId)
+    .maybeSingle();
+
+  if (!contact) {
+    throw new Error("Couldn't find that title company contact.");
+  }
+  if (!contact.user_id) {
+    throw new Error("This contact hasn't been invited yet, so there's no login to change.");
+  }
+
+  const admin = createAdminClient();
+  const { error: banError } = await admin.auth.admin.updateUserById(contact.user_id, {
+    ban_duration: revoke ? INDEFINITE_BAN : "none",
+  });
+
+  if (banError) {
+    throw new Error(banError.message);
   }
 
   revalidatePath(`/journey/${journeyId}`);

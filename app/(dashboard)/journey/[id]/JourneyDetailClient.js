@@ -61,6 +61,11 @@ import {
   setCancelled,
   requestDocument,
   cancelDocumentRequest,
+  addTitleCompanyContact,
+  updateTitleCompanyContact,
+  removeTitleCompanyContact,
+  inviteTitleCompanyContact,
+  setTitleCompanyAccess,
 } from "./actions";
 
 function formatDate(dateString) {
@@ -223,6 +228,8 @@ export default function JourneyDetailClient({
   videoLibrary,
   clientAccess,
   documentRequests,
+  titleCompanyContacts = [],
+  titleCompanyAccess = {},
   canSendMessages = true,
 }) {
   const router = useRouter();
@@ -317,6 +324,19 @@ export default function JourneyDetailClient({
   const [updatingClientAccess, setUpdatingClientAccess] = useState(false);
   const [clientAccessError, setClientAccessError] = useState("");
   const [confirmingRevokeAccess, setConfirmingRevokeAccess] = useState(false);
+
+  const emptyTitleCompanyDraft = { companyName: "", contactName: "", email: "", phone: "" };
+  const [addingTitleCompany, setAddingTitleCompany] = useState(false);
+  const [titleCompanyDraft, setTitleCompanyDraft] = useState(emptyTitleCompanyDraft);
+  const [savingTitleCompany, setSavingTitleCompany] = useState(false);
+  const [titleCompanyError, setTitleCompanyError] = useState("");
+  const [editingTitleCompanyId, setEditingTitleCompanyId] = useState(null);
+  const [titleCompanyEditDraft, setTitleCompanyEditDraft] = useState(emptyTitleCompanyDraft);
+  const [confirmingTitleCompanyInviteId, setConfirmingTitleCompanyInviteId] = useState(null);
+  const [invitingTitleCompanyId, setInvitingTitleCompanyId] = useState(null);
+  const [titleCompanyMessages, setTitleCompanyMessages] = useState({});
+  const [removingTitleCompanyId, setRemovingTitleCompanyId] = useState(null);
+  const [updatingTitleCompanyAccessId, setUpdatingTitleCompanyAccessId] = useState(null);
 
   const [deletingDocumentId, setDeletingDocumentId] = useState(null);
   const [documentError, setDocumentError] = useState("");
@@ -423,6 +443,90 @@ export default function JourneyDetailClient({
       setClientAccessError(err.message || "Couldn't update the client's access.");
     }
     setUpdatingClientAccess(false);
+  };
+
+  const handleAddTitleCompany = async () => {
+    setSavingTitleCompany(true);
+    setTitleCompanyError("");
+    try {
+      await addTitleCompanyContact(journey.id, titleCompanyDraft);
+      setTitleCompanyDraft(emptyTitleCompanyDraft);
+      setAddingTitleCompany(false);
+      router.refresh();
+    } catch (err) {
+      setTitleCompanyError(err.message || "Couldn't add that title company.");
+    }
+    setSavingTitleCompany(false);
+  };
+
+  const handleStartEditTitleCompany = (contact) => {
+    setEditingTitleCompanyId(contact.id);
+    setTitleCompanyEditDraft({
+      companyName: contact.company_name,
+      contactName: contact.contact_name || "",
+      email: contact.email,
+      phone: contact.phone || "",
+    });
+    setTitleCompanyError("");
+  };
+
+  const handleSaveTitleCompanyEdit = async (contactId) => {
+    setSavingTitleCompany(true);
+    setTitleCompanyError("");
+    try {
+      await updateTitleCompanyContact(contactId, journey.id, titleCompanyEditDraft);
+      setEditingTitleCompanyId(null);
+      router.refresh();
+    } catch (err) {
+      setTitleCompanyError(err.message || "Couldn't save those changes.");
+    }
+    setSavingTitleCompany(false);
+  };
+
+  const handleRemoveTitleCompany = async (contactId) => {
+    if (!window.confirm("Remove this title company? Their portal login (if any) will be revoked.")) return;
+    setRemovingTitleCompanyId(contactId);
+    try {
+      await removeTitleCompanyContact(contactId, journey.id);
+      router.refresh();
+    } catch (err) {
+      setTitleCompanyMessages((prev) => ({
+        ...prev,
+        [contactId]: { text: err.message || "Couldn't remove that contact.", failed: true },
+      }));
+    }
+    setRemovingTitleCompanyId(null);
+  };
+
+  const handleInviteTitleCompany = async (contactId) => {
+    setInvitingTitleCompanyId(contactId);
+    try {
+      await inviteTitleCompanyContact(contactId, journey.id);
+      setTitleCompanyMessages((prev) => ({ ...prev, [contactId]: { text: "Invite sent!", failed: false } }));
+      setConfirmingTitleCompanyInviteId(null);
+      router.refresh();
+    } catch (err) {
+      setTitleCompanyMessages((prev) => ({
+        ...prev,
+        [contactId]: { text: err.message || "Couldn't send the invite.", failed: true },
+      }));
+    }
+    setInvitingTitleCompanyId(null);
+  };
+
+  const handleToggleTitleCompanyAccess = async (contactId, revoke) => {
+    if (revoke && !window.confirm("Revoke this title company's portal access?")) return;
+    setUpdatingTitleCompanyAccessId(contactId);
+    try {
+      await setTitleCompanyAccess(contactId, journey.id, revoke);
+      router.refresh();
+    } catch (err) {
+      setTitleCompanyMessages((prev) => ({
+        ...prev,
+        [contactId]: { text: err.message || "Couldn't update access.", failed: true },
+      }));
+    }
+    setUpdatingTitleCompanyAccessId(null);
   };
 
   const handleApprove = () => {
@@ -1197,6 +1301,339 @@ export default function JourneyDetailClient({
       >
         <Eye size={12} /> Preview their portal
       </a>
+
+      <div style={{ marginTop: 18 }}>
+        <div style={{ fontSize: 11.5, fontWeight: 600, color: "var(--lh-slate)", marginBottom: 6 }}>
+          Title company access
+        </div>
+
+        {titleCompanyContacts.map((contact) => {
+          const access = titleCompanyAccess[contact.id];
+          const isEditing = editingTitleCompanyId === contact.id;
+          const message = titleCompanyMessages[contact.id];
+
+          return (
+            <div
+              key={contact.id}
+              style={{
+                background: "var(--lh-paper)",
+                border: "1px solid var(--lh-line)",
+                borderRadius: 10,
+                padding: "10px 12px",
+                marginBottom: 8,
+              }}
+            >
+              {isEditing ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <input
+                      value={titleCompanyEditDraft.companyName}
+                      onChange={(e) => setTitleCompanyEditDraft((d) => ({ ...d, companyName: e.target.value }))}
+                      placeholder="Company name"
+                      className="lh-focus"
+                      style={{ flex: "1 1 150px", border: "1px solid var(--lh-line)", borderRadius: 7, padding: "6px 9px", fontSize: 13, fontFamily: "inherit" }}
+                    />
+                    <input
+                      value={titleCompanyEditDraft.contactName}
+                      onChange={(e) => setTitleCompanyEditDraft((d) => ({ ...d, contactName: e.target.value }))}
+                      placeholder="Contact name (optional)"
+                      className="lh-focus"
+                      style={{ flex: "1 1 150px", border: "1px solid var(--lh-line)", borderRadius: 7, padding: "6px 9px", fontSize: 13, fontFamily: "inherit" }}
+                    />
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <input
+                      type="email"
+                      value={titleCompanyEditDraft.email}
+                      onChange={(e) => setTitleCompanyEditDraft((d) => ({ ...d, email: e.target.value }))}
+                      placeholder="Email"
+                      className="lh-focus"
+                      style={{ flex: "1 1 150px", border: "1px solid var(--lh-line)", borderRadius: 7, padding: "6px 9px", fontSize: 13, fontFamily: "inherit" }}
+                    />
+                    <input
+                      type="tel"
+                      value={titleCompanyEditDraft.phone}
+                      onChange={(e) => setTitleCompanyEditDraft((d) => ({ ...d, phone: e.target.value }))}
+                      placeholder="Phone (optional)"
+                      className="lh-focus"
+                      style={{ flex: "1 1 150px", border: "1px solid var(--lh-line)", borderRadius: 7, padding: "6px 9px", fontSize: 13, fontFamily: "inherit" }}
+                    />
+                  </div>
+                  {titleCompanyError && <div style={{ fontSize: 12, color: "#B4472A" }}>{titleCompanyError}</div>}
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      onClick={() => handleSaveTitleCompanyEdit(contact.id)}
+                      disabled={savingTitleCompany}
+                      className="lh-focus"
+                      style={{ background: "var(--lh-navy)", color: "white", border: "none", borderRadius: 7, padding: "6px 12px", fontSize: 12.5, cursor: "pointer", opacity: savingTitleCompany ? 0.7 : 1 }}
+                    >
+                      {savingTitleCompany ? "Saving..." : "Save"}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingTitleCompanyId(null);
+                        setTitleCompanyError("");
+                      }}
+                      disabled={savingTitleCompany}
+                      className="lh-focus"
+                      style={{ background: "none", border: "1px solid var(--lh-line)", borderRadius: 7, padding: "6px 12px", fontSize: 12.5, color: "var(--lh-slate)", cursor: "pointer" }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--lh-navy)" }}>{contact.company_name}</div>
+                      <div style={{ fontSize: 12, color: "var(--lh-slate)" }}>
+                        {contact.contact_name ? `${contact.contact_name} · ` : ""}
+                        {contact.email}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button
+                        onClick={() => handleStartEditTitleCompany(contact)}
+                        className="lh-focus"
+                        title="Edit"
+                        style={{ background: "none", border: "1px solid var(--lh-line)", borderRadius: 7, padding: "4px 7px", cursor: "pointer", color: "var(--lh-slate)" }}
+                      >
+                        <Pencil size={12} />
+                      </button>
+                      <button
+                        onClick={() => handleRemoveTitleCompany(contact.id)}
+                        disabled={removingTitleCompanyId === contact.id}
+                        className="lh-focus"
+                        title="Remove"
+                        style={{
+                          background: "none",
+                          border: "1px solid var(--lh-line)",
+                          borderRadius: 7,
+                          padding: "4px 7px",
+                          cursor: "pointer",
+                          color: "var(--lh-red)",
+                          opacity: removingTitleCompanyId === contact.id ? 0.6 : 1,
+                        }}
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginTop: 8 }}>
+                    {contact.activated_at ? (
+                      <span
+                        className="lh-mono"
+                        title={`Set up their login on ${formatDate(contact.activated_at)}`}
+                        style={{ fontSize: 11, color: "var(--lh-teal)", display: "flex", alignItems: "center", gap: 4 }}
+                      >
+                        <Check size={12} /> Portal activated {formatDate(contact.activated_at)}
+                      </span>
+                    ) : contact.user_id ? (
+                      <span
+                        className="lh-mono"
+                        style={{ fontSize: 11, color: "var(--lh-gold)", display: "flex", alignItems: "center", gap: 4 }}
+                      >
+                        <Bell size={12} /> Invited — not yet activated
+                      </span>
+                    ) : (
+                      <span className="lh-mono" style={{ fontSize: 11, color: "var(--lh-slate-light)" }}>
+                        No portal access yet
+                      </span>
+                    )}
+
+                    {confirmingTitleCompanyInviteId === contact.id ? (
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 11.5, color: "var(--lh-slate)" }}>
+                          {contact.user_id ? "Send a fresh login link now?" : "Send the invite now?"}
+                        </span>
+                        <button
+                          onClick={() => handleInviteTitleCompany(contact.id)}
+                          disabled={invitingTitleCompanyId === contact.id}
+                          className="lh-focus"
+                          style={{
+                            background: "var(--lh-navy)",
+                            color: "white",
+                            border: "none",
+                            borderRadius: 7,
+                            padding: "3px 10px",
+                            fontSize: 11.5,
+                            fontWeight: 600,
+                            cursor: invitingTitleCompanyId === contact.id ? "default" : "pointer",
+                            opacity: invitingTitleCompanyId === contact.id ? 0.6 : 1,
+                          }}
+                        >
+                          {invitingTitleCompanyId === contact.id ? "Sending..." : "Confirm send"}
+                        </button>
+                        <button
+                          onClick={() => setConfirmingTitleCompanyInviteId(null)}
+                          disabled={invitingTitleCompanyId === contact.id}
+                          className="lh-focus"
+                          style={{ background: "none", border: "1px solid var(--lh-line)", borderRadius: 7, padding: "3px 10px", fontSize: 11.5, color: "var(--lh-slate)", cursor: "pointer" }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmingTitleCompanyInviteId(contact.id)}
+                        disabled={invitingTitleCompanyId === contact.id || !canSendMessages}
+                        className="lh-focus"
+                        style={{
+                          background: "none",
+                          border: "1px solid var(--lh-line)",
+                          borderRadius: 7,
+                          padding: "3px 9px",
+                          fontSize: 11.5,
+                          color: "var(--lh-slate)",
+                          cursor: canSendMessages ? "pointer" : "default",
+                          opacity: !canSendMessages ? 0.6 : 1,
+                        }}
+                        title={!canSendMessages ? "Sending messages is disabled while covering another agency" : undefined}
+                      >
+                        {contact.user_id ? "Resend login link" : "Invite title company"}
+                      </button>
+                    )}
+
+                    {contact.user_id && (
+                      <button
+                        onClick={() => handleToggleTitleCompanyAccess(contact.id, !access?.revoked)}
+                        disabled={updatingTitleCompanyAccessId === contact.id}
+                        className="lh-focus"
+                        style={{
+                          background: "none",
+                          border: `1px solid ${access?.revoked ? "var(--lh-teal)" : "var(--lh-red)"}`,
+                          borderRadius: 7,
+                          padding: "3px 9px",
+                          fontSize: 11.5,
+                          color: access?.revoked ? "var(--lh-teal)" : "var(--lh-red)",
+                          cursor: "pointer",
+                          opacity: updatingTitleCompanyAccessId === contact.id ? 0.6 : 1,
+                        }}
+                      >
+                        {updatingTitleCompanyAccessId === contact.id
+                          ? "Updating..."
+                          : access?.revoked
+                          ? "Restore access"
+                          : "Revoke access"}
+                      </button>
+                    )}
+
+                    {message && (
+                      <span style={{ fontSize: 11.5, color: message.failed ? "var(--lh-red)" : "var(--lh-slate)" }}>
+                        {message.text}
+                      </span>
+                    )}
+                  </div>
+
+                  {access?.lastSignInAt && (
+                    <div style={{ fontSize: 11, color: "var(--lh-slate-light)", marginTop: 4 }}>
+                      Last logged in {formatDate(access.lastSignInAt)}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          );
+        })}
+
+        {titleCompanyContacts.length < 2 &&
+          (addingTitleCompany ? (
+            <div
+              style={{
+                background: "var(--lh-paper)",
+                border: "1px solid var(--lh-line)",
+                borderRadius: 10,
+                padding: "10px 12px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+              }}
+            >
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <input
+                  value={titleCompanyDraft.companyName}
+                  onChange={(e) => setTitleCompanyDraft((d) => ({ ...d, companyName: e.target.value }))}
+                  placeholder="Company name"
+                  className="lh-focus"
+                  style={{ flex: "1 1 150px", border: "1px solid var(--lh-line)", borderRadius: 7, padding: "6px 9px", fontSize: 13, fontFamily: "inherit" }}
+                />
+                <input
+                  value={titleCompanyDraft.contactName}
+                  onChange={(e) => setTitleCompanyDraft((d) => ({ ...d, contactName: e.target.value }))}
+                  placeholder="Contact name (optional)"
+                  className="lh-focus"
+                  style={{ flex: "1 1 150px", border: "1px solid var(--lh-line)", borderRadius: 7, padding: "6px 9px", fontSize: 13, fontFamily: "inherit" }}
+                />
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <input
+                  type="email"
+                  value={titleCompanyDraft.email}
+                  onChange={(e) => setTitleCompanyDraft((d) => ({ ...d, email: e.target.value }))}
+                  placeholder="Email"
+                  className="lh-focus"
+                  style={{ flex: "1 1 150px", border: "1px solid var(--lh-line)", borderRadius: 7, padding: "6px 9px", fontSize: 13, fontFamily: "inherit" }}
+                />
+                <input
+                  type="tel"
+                  value={titleCompanyDraft.phone}
+                  onChange={(e) => setTitleCompanyDraft((d) => ({ ...d, phone: e.target.value }))}
+                  placeholder="Phone (optional)"
+                  className="lh-focus"
+                  style={{ flex: "1 1 150px", border: "1px solid var(--lh-line)", borderRadius: 7, padding: "6px 9px", fontSize: 13, fontFamily: "inherit" }}
+                />
+              </div>
+              <p style={{ fontSize: 11.5, color: "var(--lh-slate-light)", margin: 0 }}>
+                Saving here doesn&apos;t invite them — you&apos;ll get a separate &quot;Invite title company&quot;
+                button once they&apos;re added.
+              </p>
+              {titleCompanyError && <div style={{ fontSize: 12, color: "#B4472A" }}>{titleCompanyError}</div>}
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  onClick={handleAddTitleCompany}
+                  disabled={savingTitleCompany}
+                  className="lh-focus"
+                  style={{ background: "var(--lh-navy)", color: "white", border: "none", borderRadius: 7, padding: "6px 12px", fontSize: 12.5, cursor: "pointer", opacity: savingTitleCompany ? 0.7 : 1 }}
+                >
+                  {savingTitleCompany ? "Saving..." : "Save"}
+                </button>
+                <button
+                  onClick={() => {
+                    setAddingTitleCompany(false);
+                    setTitleCompanyError("");
+                    setTitleCompanyDraft(emptyTitleCompanyDraft);
+                  }}
+                  disabled={savingTitleCompany}
+                  className="lh-focus"
+                  style={{ background: "none", border: "1px solid var(--lh-line)", borderRadius: 7, padding: "6px 12px", fontSize: 12.5, color: "var(--lh-slate)", cursor: "pointer" }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setAddingTitleCompany(true)}
+              className="lh-focus"
+              style={{
+                background: "none",
+                border: "1px dashed var(--lh-line)",
+                borderRadius: 8,
+                padding: "7px 12px",
+                fontSize: 12.5,
+                color: "var(--lh-slate)",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <Plus size={13} /> Add a title company
+            </button>
+          ))}
+      </div>
 
       <div style={{ margin: "22px 0 8px" }}>
         <CourseLine stageIndex={journey.stage_index} statusLevel={journey.status_level} role={journey.role} />
