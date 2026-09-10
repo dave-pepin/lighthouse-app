@@ -29,8 +29,14 @@ export default async function JourneyDetailPage({ params }) {
     redirect("/bridge");
   }
 
-  const [{ data: milestones }, { data: documents }, { data: weeklyUpdates }, { data: videoLibrary }, { data: documentRequests }] =
-    await Promise.all([
+  const [
+    { data: milestones },
+    { data: documents },
+    { data: weeklyUpdates },
+    { data: videoLibrary },
+    { data: documentRequests },
+    { data: titleCompanyContacts },
+  ] = await Promise.all([
       supabase
         .from("milestones")
         .select("*")
@@ -59,6 +65,11 @@ export default async function JourneyDetailPage({ params }) {
         .select("id, label, status, requested_at")
         .eq("journey_id", id)
         .order("requested_at", { ascending: false }),
+      supabase
+        .from("title_company_contacts")
+        .select("id, company_name, contact_name, email, phone, user_id, invited_at, activated_at")
+        .eq("journey_id", id)
+        .order("created_at", { ascending: true }),
     ]);
 
   const latestUpdate = weeklyUpdates?.[0] || null;
@@ -122,6 +133,19 @@ export default async function JourneyDetailPage({ params }) {
     };
   }
 
+  // Same idea as clientAccess above, but keyed by contact id since a
+  // Journey can have up to two title company contacts.
+  const titleCompanyAccess = {};
+  for (const contact of titleCompanyContacts || []) {
+    if (!contact.user_id) continue;
+    const { data } = await admin.auth.admin.getUserById(contact.user_id);
+    const bannedUntil = data?.user?.banned_until;
+    titleCompanyAccess[contact.id] = {
+      revoked: !!bannedUntil && new Date(bannedUntil).getTime() > Date.now(),
+      lastSignInAt: data?.user?.last_sign_in_at || null,
+    };
+  }
+
   return (
     <JourneyDetailClient
       journey={journey}
@@ -131,6 +155,8 @@ export default async function JourneyDetailPage({ params }) {
       videoLibrary={videoLibrary || []}
       clientAccess={clientAccess}
       documentRequests={documentRequests || []}
+      titleCompanyContacts={titleCompanyContacts || []}
+      titleCompanyAccess={titleCompanyAccess}
       canSendMessages={!effectiveAgency.isDelegate}
     />
   );
