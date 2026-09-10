@@ -24,6 +24,9 @@ const labelStyle = {
   display: "block",
 };
 
+const rowStyle = { display: "flex", gap: 14, flexWrap: "wrap" };
+const fieldStyle = { flex: "1 1 220px", minWidth: 0 };
+
 export default function NewJourneyPage() {
   const [updatePreference, setUpdatePreference] = useState("both");
   const [role, setRole] = useState("Buying");
@@ -45,7 +48,7 @@ export default function NewJourneyPage() {
   };
 
   return (
-    <div style={{ maxWidth: 600, margin: "0 auto", padding: "36px 32px 60px" }}>
+    <div style={{ maxWidth: 1040, margin: "0 auto", padding: "36px 32px 60px" }}>
       <Link
         href="/bridge"
         className="lh-focus"
@@ -71,13 +74,12 @@ export default function NewJourneyPage() {
       </p>
 
       <form action={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-        <div>
-          <label style={labelStyle}>Client name</label>
-          <input name="client_name" required style={inputStyle} placeholder="e.g. Priya & Sam Waller" />
-        </div>
-
-        <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-          <div style={{ flex: "1 1 180px", minWidth: 0 }}>
+        <div style={rowStyle}>
+          <div style={fieldStyle}>
+            <label style={labelStyle}>Client name</label>
+            <input name="client_name" required style={inputStyle} placeholder="e.g. Priya & Sam Waller" />
+          </div>
+          <div style={fieldStyle}>
             <label style={labelStyle}>Role</label>
             <select
               name="role"
@@ -94,7 +96,10 @@ export default function NewJourneyPage() {
               <option value="Selling">Selling</option>
             </select>
           </div>
-          <div style={{ flex: "1 1 180px", minWidth: 0 }}>
+        </div>
+
+        <div style={rowStyle}>
+          <div style={fieldStyle}>
             <label style={labelStyle}>Starting stage</label>
             <select name="stage" required style={inputStyle} value={stage} onChange={(e) => setStage(e.target.value)}>
               {stagesForRole(role)
@@ -106,24 +111,24 @@ export default function NewJourneyPage() {
                 ))}
             </select>
           </div>
+          <div style={fieldStyle}>
+            <label style={labelStyle}>Is this transaction cash or financed?</label>
+            <select name="financing_type" required style={inputStyle} defaultValue="financed">
+              <option value="financed">Financed (loan involved)</option>
+              <option value="cash">Cash</option>
+            </select>
+          </div>
         </div>
 
-        <div>
-          <label style={labelStyle}>Is this transaction cash or financed?</label>
-          <select name="financing_type" required style={inputStyle} defaultValue="financed">
-            <option value="financed">Financed (loan involved)</option>
-            <option value="cash">Cash</option>
-          </select>
-        </div>
-
-        <div>
-          <label style={labelStyle}>Property address (optional)</label>
-          <input name="property_address" style={inputStyle} placeholder="123 Main St, Springfield" />
-        </div>
-
-        <div>
-          <label style={labelStyle}>Next action (optional)</label>
-          <input name="next_action" style={inputStyle} placeholder="e.g. Share three new listings" />
+        <div style={rowStyle}>
+          <div style={fieldStyle}>
+            <label style={labelStyle}>Property address (optional)</label>
+            <input name="property_address" style={inputStyle} placeholder="123 Main St, Springfield" />
+          </div>
+          <div style={fieldStyle}>
+            <label style={labelStyle}>Next action (optional)</label>
+            <input name="next_action" style={inputStyle} placeholder="e.g. Share three new listings" />
+          </div>
         </div>
 
         <div
@@ -157,53 +162,59 @@ export default function NewJourneyPage() {
           </select>
         </div>
 
-        {(updatePreference === "email" || updatePreference === "both") && (
-          <div>
-            <label style={labelStyle}>Client email</label>
-            <input
-              name="client_email"
-              type="email"
-              required
-              style={inputStyle}
-              placeholder="client@example.com"
-            />
+        {(updatePreference === "email" || updatePreference === "both" || updatePreference === "sms") && (
+          <div style={rowStyle}>
+            {(updatePreference === "email" || updatePreference === "both") && (
+              <div style={fieldStyle}>
+                <label style={labelStyle}>Client email</label>
+                <input
+                  name="client_email"
+                  type="email"
+                  required
+                  style={inputStyle}
+                  placeholder="client@example.com"
+                />
+              </div>
+            )}
+            {(updatePreference === "sms" || updatePreference === "both") && (
+              <div style={fieldStyle}>
+                <label style={labelStyle}>Client phone</label>
+                <input
+                  name="client_phone"
+                  type="tel"
+                  required
+                  style={inputStyle}
+                  placeholder="555-0100"
+                />
+              </div>
+            )}
           </div>
         )}
 
-        {(updatePreference === "sms" || updatePreference === "both") && (
-          <div>
-            <label style={labelStyle}>Client phone</label>
-            <input
-              name="client_phone"
-              type="tel"
-              required
-              style={inputStyle}
-              placeholder="555-0100"
-            />
-          </div>
-        )}
-
-        {(updatePreference === "email" || updatePreference === "both") && (
-          <div>
-            <label style={labelStyle}>Additional email (optional)</label>
-            <input
-              name="client_email_2"
-              type="email"
-              style={inputStyle}
-              placeholder="e.g. spouse@example.com"
-            />
-          </div>
-        )}
-
-        {(updatePreference === "sms" || updatePreference === "both") && (
-          <div>
-            <label style={labelStyle}>Additional phone (optional)</label>
-            <input
-              name="client_phone_2"
-              type="tel"
-              style={inputStyle}
-              placeholder="555-0100"
-            />
+        {(updatePreference === "email" || updatePreference === "both" || updatePreference === "sms") && (
+          <div style={rowStyle}>
+            {(updatePreference === "email" || updatePreference === "both") && (
+              <div style={fieldStyle}>
+                <label style={labelStyle}>Additional email (optional)</label>
+                <input
+                  name="client_email_2"
+                  type="email"
+                  style={inputStyle}
+                  placeholder="e.g. spouse@example.com"
+                />
+              </div>
+            )}
+            {(updatePreference === "sms" || updatePreference === "both") && (
+              <div style={fieldStyle}>
+                <label style={labelStyle}>Additional phone (optional)</label>
+                <input
+                  name="client_phone_2"
+                  type="tel"
+                  style={inputStyle}
+                  placeholder="555-0100"
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -224,6 +235,8 @@ export default function NewJourneyPage() {
             cursor: submitting ? "default" : "pointer",
             opacity: submitting ? 0.7 : 1,
             marginTop: 6,
+            alignSelf: "flex-start",
+            minWidth: 200,
           }}
         >
           {submitting ? "Creating..." : "Create Journey"}

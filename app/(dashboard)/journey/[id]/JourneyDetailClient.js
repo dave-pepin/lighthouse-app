@@ -14,6 +14,7 @@ import {
   X,
   Calendar,
   ChevronDown,
+  ChevronRight,
   GripVertical,
   Trash2,
   Plus,
@@ -337,6 +338,10 @@ export default function JourneyDetailClient({
   const [titleCompanyMessages, setTitleCompanyMessages] = useState({});
   const [removingTitleCompanyId, setRemovingTitleCompanyId] = useState(null);
   const [updatingTitleCompanyAccessId, setUpdatingTitleCompanyAccessId] = useState(null);
+  // Collapsed by default — a full contact card (status, invite, revoke,
+  // preview) is a lot to always show inline for something most Journeys
+  // don't even have. Only one open at a time, since there are at most two.
+  const [expandedTitleCompanyId, setExpandedTitleCompanyId] = useState(null);
 
   const [deletingDocumentId, setDeletingDocumentId] = useState(null);
   const [documentError, setDocumentError] = useState("");
@@ -944,33 +949,24 @@ export default function JourneyDetailClient({
 
       <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "flex-start", flexWrap: "wrap", gap: 10, marginBottom: 8 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h1 className="lh-display" style={{ fontSize: 26, fontWeight: 600, margin: 0, overflowWrap: "break-word" }}>
-            {journey.client_name}
-          </h1>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <h1 className="lh-display" style={{ fontSize: 26, fontWeight: 600, margin: 0, overflowWrap: "break-word" }}>
+              {journey.client_name}
+            </h1>
+            {!editingClient && (
+              <button
+                onClick={() => setEditingClient(true)}
+                className="lh-focus"
+                title="Edit client info"
+                style={{ background: "none", border: "none", padding: 4, cursor: "pointer", display: "flex", flexShrink: 0 }}
+              >
+                <Pencil size={15} color="var(--lh-slate)" />
+              </button>
+            )}
+          </div>
           <div style={{ fontSize: 13, color: "var(--lh-slate)", marginTop: 2 }}>{journey.role}</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          {!editingClient && (
-            <button
-              onClick={() => setEditingClient(true)}
-              className="lh-focus"
-              title="Edit client info"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 5,
-                background: "none",
-                border: "1px solid var(--lh-line)",
-                borderRadius: 7,
-                padding: "4px 10px",
-                fontSize: 12,
-                color: "var(--lh-slate)",
-                cursor: "pointer",
-              }}
-            >
-              <Pencil size={12} /> Edit info
-            </button>
-          )}
           <button
             onClick={() => setEditingStatus((cur) => !cur)}
             className="lh-focus"
@@ -1311,6 +1307,53 @@ export default function JourneyDetailClient({
           const access = titleCompanyAccess[contact.id];
           const isEditing = editingTitleCompanyId === contact.id;
           const message = titleCompanyMessages[contact.id];
+          const isExpanded = isEditing || expandedTitleCompanyId === contact.id;
+
+          if (!isExpanded) {
+            const statusLabel = contact.activated_at
+              ? "Portal activated"
+              : contact.user_id
+              ? "Invited"
+              : "No portal access yet";
+            return (
+              <button
+                key={contact.id}
+                onClick={() => setExpandedTitleCompanyId(contact.id)}
+                className="lh-focus"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  width: "100%",
+                  textAlign: "left",
+                  background: "var(--lh-paper)",
+                  border: "1px solid var(--lh-line)",
+                  borderRadius: 10,
+                  padding: "8px 12px",
+                  marginBottom: 8,
+                  cursor: "pointer",
+                }}
+              >
+                <ChevronRight size={13} color="var(--lh-slate-light)" style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--lh-navy)", flexShrink: 0 }}>
+                  {contact.company_name}
+                </span>
+                <span style={{ fontSize: 11.5, color: "var(--lh-slate-light)", flexShrink: 0 }}>{statusLabel}</span>
+                <span
+                  style={{
+                    marginLeft: "auto",
+                    fontSize: 12,
+                    color: "var(--lh-slate)",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {contact.email}
+                </span>
+              </button>
+            );
+          }
 
           return (
             <div
@@ -1385,13 +1428,20 @@ export default function JourneyDetailClient({
               ) : (
                 <>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--lh-navy)" }}>{contact.company_name}</div>
-                      <div style={{ fontSize: 12, color: "var(--lh-slate)" }}>
-                        {contact.contact_name ? `${contact.contact_name} · ` : ""}
-                        {contact.email}
+                    <button
+                      onClick={() => setExpandedTitleCompanyId(null)}
+                      className="lh-focus"
+                      style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}
+                    >
+                      <ChevronDown size={13} color="var(--lh-slate-light)" style={{ flexShrink: 0 }} />
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--lh-navy)" }}>{contact.company_name}</div>
+                        <div style={{ fontSize: 12, color: "var(--lh-slate)" }}>
+                          {contact.contact_name ? `${contact.contact_name} · ` : ""}
+                          {contact.email}
+                        </div>
                       </div>
-                    </div>
+                    </button>
                     <div style={{ display: "flex", gap: 6 }}>
                       <button
                         onClick={() => handleStartEditTitleCompany(contact)}
@@ -1532,6 +1582,24 @@ export default function JourneyDetailClient({
                       Last logged in {formatDate(access.lastSignInAt)}
                     </div>
                   )}
+
+                  <a
+                    href={`/title-preview/${journey.id}?contact=${contact.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="lh-focus"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 5,
+                      fontSize: 11.5,
+                      color: "var(--lh-teal)",
+                      textDecoration: "none",
+                      marginTop: 6,
+                    }}
+                  >
+                    <Eye size={12} /> Preview their portal
+                  </a>
                 </>
               )}
             </div>
@@ -1718,7 +1786,8 @@ export default function JourneyDetailClient({
                 fontSize: 15.5,
                 fontWeight: 600,
                 color: journey.property_address ? "var(--lh-navy)" : "var(--lh-slate-light)",
-                flex: 1,
+                minWidth: 0,
+                overflowWrap: "break-word",
               }}
             >
               {journey.property_address || "Add the property address"}
@@ -1727,7 +1796,7 @@ export default function JourneyDetailClient({
               onClick={() => setEditingAddress(true)}
               className="lh-focus"
               title="Edit address"
-              style={{ background: "none", border: "none", padding: 4, cursor: "pointer", display: "flex" }}
+              style={{ background: "none", border: "none", padding: 4, cursor: "pointer", display: "flex", flexShrink: 0 }}
             >
               <Pencil size={14} color="var(--lh-slate)" />
             </button>

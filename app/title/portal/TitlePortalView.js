@@ -1,12 +1,42 @@
-import { Anchor, FileText } from "lucide-react";
+import { Anchor, Eye, FileText } from "lucide-react";
 import ClientSignOutButton from "@/components/ClientSignOutButton";
 import TitleDocumentUpload from "./TitleDocumentUpload";
 
 // The title company's whole portal — documents only, no milestones,
-// updates, or anything else, matching their scoped access.
-export default function TitlePortalView({ journey, companyName, documentsWithLinks, hasMultipleJourneys }) {
+// updates, or anything else, matching their scoped access. Shared by the
+// real title-company-facing page and the agent-facing preview
+// (app/title-preview/[id]/page.js), same reasoning as the client portal's
+// PortalView: `previewMode` swaps the sign-out control (which would
+// otherwise sign the *agent* out of their own session) for a plain "Close
+// preview" link, shows a banner, and disables the upload control.
+export default function TitlePortalView({
+  journey,
+  companyName,
+  documentsWithLinks,
+  hasMultipleJourneys = false,
+  previewMode = false,
+  closePreviewHref = "/bridge",
+}) {
   return (
     <div style={{ minHeight: "100vh", background: "var(--lh-fog)" }}>
+      {previewMode && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            padding: "9px 16px",
+            background: "var(--lh-navy)",
+            color: "white",
+            fontSize: 12.5,
+          }}
+        >
+          <Eye size={13} />
+          Previewing {companyName}&apos;s portal — this is read-only and they won&apos;t be notified.
+        </div>
+      )}
+
       <div
         style={{
           display: "flex",
@@ -24,12 +54,24 @@ export default function TitlePortalView({ journey, companyName, documentsWithLin
           </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          {hasMultipleJourneys && (
-            <a href="/title/portal" className="lh-focus" style={{ fontSize: 12.5, color: "var(--lh-slate)" }}>
-              Switch Journey
+          {previewMode ? (
+            <a
+              href={closePreviewHref}
+              className="lh-focus"
+              style={{ fontSize: 12.5, color: "var(--lh-slate)", textDecoration: "underline" }}
+            >
+              Close preview
             </a>
+          ) : (
+            <>
+              {hasMultipleJourneys && (
+                <a href="/title/portal" className="lh-focus" style={{ fontSize: 12.5, color: "var(--lh-slate)" }}>
+                  Switch Journey
+                </a>
+              )}
+              <ClientSignOutButton />
+            </>
           )}
-          <ClientSignOutButton />
         </div>
       </div>
 
@@ -54,7 +96,7 @@ export default function TitlePortalView({ journey, companyName, documentsWithLin
             <h2 className="lh-display" style={{ fontSize: 17, fontWeight: 600, margin: 0 }}>
               Documents
             </h2>
-            <TitleDocumentUpload journeyId={journey.id} />
+            {!previewMode && <TitleDocumentUpload journeyId={journey.id} />}
           </div>
 
           {documentsWithLinks.length === 0 ? (

@@ -40,7 +40,25 @@ create policy title_company_contacts_select_own_row on title_company_contacts fo
 
 create policy title_company_select_journey_documents on documents for select using (journey_id in (select journey_id from title_company_contacts where user_id = auth.uid()));
 
-create policy title_company_select_own_journeys on journeys for select using (id in (select journey_id from title_company_contacts where user_id = auth.uid()));
+-- security definer, deliberately: this is called from the journeys
+-- policy just below, and title_company_contacts' own agent policies
+-- (above) query journeys right back — a plain subquery here creates a
+-- two-table RLS cycle ("infinite recursion detected in policy for
+-- relation journeys"), which is exactly what happened running this
+-- migration the first time. Running as the function owner bypasses RLS
+-- on this one lookup, breaking the cycle. Same idea as
+-- is_active_agency_delegate, just needed here because that one is a
+-- one-way reference (nothing reads back into agency_delegates) and this
+-- one isn't.
+create or replace function is_title_company_contact_for_journey(target_journey_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$ select exists (select 1 from title_company_contacts where journey_id = target_journey_id and user_id = auth.uid()) $$;
+
+create policy title_company_select_own_journeys on journeys for select using (is_title_company_contact_for_journey(id));
 
 alter table documents drop constraint if exists documents_uploaded_by_check;
 
