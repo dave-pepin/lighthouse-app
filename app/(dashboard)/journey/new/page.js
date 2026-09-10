@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { stagesForRole, stageLabel } from "@/components/CourseLine";
+import { formatUSPhoneInput } from "@/lib/phone";
 import { createJourney } from "./actions";
 
 const inputStyle = {
@@ -33,6 +34,8 @@ export default function NewJourneyPage() {
   const [stage, setStage] = useState(stagesForRole("Buying")[0]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [clientPhone, setClientPhone] = useState("");
+  const [clientPhone2, setClientPhone2] = useState("");
 
   const handleSubmit = async (formData) => {
     setSubmitting(true);
@@ -184,7 +187,9 @@ export default function NewJourneyPage() {
                   type="tel"
                   required
                   style={inputStyle}
-                  placeholder="555-0100"
+                  placeholder="(555) 123-4567"
+                  value={clientPhone}
+                  onChange={(e) => setClientPhone(formatUSPhoneInput(e.target.value))}
                 />
               </div>
             )}
@@ -211,7 +216,9 @@ export default function NewJourneyPage() {
                   name="client_phone_2"
                   type="tel"
                   style={inputStyle}
-                  placeholder="555-0100"
+                  placeholder="(555) 123-4567"
+                  value={clientPhone2}
+                  onChange={(e) => setClientPhone2(formatUSPhoneInput(e.target.value))}
                 />
               </div>
             )}

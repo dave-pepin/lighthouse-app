@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import CourseLine, { stagesForRole, stageLabel } from "@/components/CourseLine";
 import { reorderById } from "@/lib/reorder";
+import { formatUSPhoneInput } from "@/lib/phone";
 import PdfThumbnail from "@/components/PdfThumbnail";
 import StageTag from "@/components/StageTag";
 import { createClient } from "@/lib/supabase/client";
@@ -1121,8 +1122,8 @@ export default function JourneyDetailClient({
               <input
                 type="tel"
                 value={clientPhoneDraft}
-                onChange={(e) => setClientPhoneDraft(e.target.value)}
-                placeholder="555-123-4567"
+                onChange={(e) => setClientPhoneDraft(formatUSPhoneInput(e.target.value))}
+                placeholder="(555) 123-4567"
                 className="lh-focus"
                 style={{ width: "100%", border: "1px solid var(--lh-line)", borderRadius: 7, padding: "7px 9px", fontSize: 13.5, fontFamily: "inherit" }}
               />
@@ -1149,8 +1150,8 @@ export default function JourneyDetailClient({
               <input
                 type="tel"
                 value={clientPhone2Draft}
-                onChange={(e) => setClientPhone2Draft(e.target.value)}
-                placeholder="555-123-4567"
+                onChange={(e) => setClientPhone2Draft(formatUSPhoneInput(e.target.value))}
+                placeholder="(555) 123-4567"
                 className="lh-focus"
                 style={{ width: "100%", border: "1px solid var(--lh-line)", borderRadius: 7, padding: "7px 9px", fontSize: 13.5, fontFamily: "inherit" }}
               />
@@ -1396,7 +1397,7 @@ export default function JourneyDetailClient({
                     <input
                       type="tel"
                       value={titleCompanyEditDraft.phone}
-                      onChange={(e) => setTitleCompanyEditDraft((d) => ({ ...d, phone: e.target.value }))}
+                      onChange={(e) => setTitleCompanyEditDraft((d) => ({ ...d, phone: formatUSPhoneInput(e.target.value) }))}
                       placeholder="Phone (optional)"
                       className="lh-focus"
                       style={{ flex: "1 1 150px", border: "1px solid var(--lh-line)", borderRadius: 7, padding: "6px 9px", fontSize: 13, fontFamily: "inherit" }}
@@ -1647,7 +1648,7 @@ export default function JourneyDetailClient({
                 <input
                   type="tel"
                   value={titleCompanyDraft.phone}
-                  onChange={(e) => setTitleCompanyDraft((d) => ({ ...d, phone: e.target.value }))}
+                  onChange={(e) => setTitleCompanyDraft((d) => ({ ...d, phone: formatUSPhoneInput(e.target.value) }))}
                   placeholder="Phone (optional)"
                   className="lh-focus"
                   style={{ flex: "1 1 150px", border: "1px solid var(--lh-line)", borderRadius: 7, padding: "6px 9px", fontSize: 13, fontFamily: "inherit" }}
