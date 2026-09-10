@@ -1169,11 +1169,21 @@ export async function removeTitleCompanyContact(contactId, journeyId) {
   }
 
   if (contact.user_id) {
-    try {
-      const admin = createAdminClient();
-      await admin.auth.admin.deleteUser(contact.user_id);
-    } catch (err) {
-      Sentry.captureException(err);
+    const admin = createAdminClient();
+    if (await isSafeTitleCompanyUserId(admin, contact.user_id)) {
+      try {
+        await admin.auth.admin.deleteUser(contact.user_id);
+      } catch (err) {
+        Sentry.captureException(err);
+      }
+    } else {
+      // Shouldn't happen now that inviteTitleCompanyContact guards
+      // against this, but if a row somehow still has a real agent's or
+      // client's user_id linked, refuse to touch their login — leaving
+      // an orphaned reference is far better than deleting their account.
+      Sentry.captureException(
+        new Error(`Refused to delete auth user ${contact.user_id}: belongs to an agent or client, not a title company contact.`)
+      );
     }
   }
 
@@ -1183,6 +1193,25 @@ export async function removeTitleCompanyContact(contactId, journeyId) {
   }
 
   revalidatePath(`/journey/${journeyId}`);
+}
+
+// Returns false if this Auth user id actually belongs to an existing
+// agent or client account rather than a genuine title company login — an
+// email collision (e.g. testing the invite flow with your own address)
+// would otherwise silently link a title company contact's user_id to a
+// real login, and a later revoke/remove would then ban or delete it.
+// Reusing an existing title company contact's own login (the same
+// company invited across multiple Journeys) is fine and expected, so
+// this only flags agent and client accounts specifically.
+async function isSafeTitleCompanyUserId(admin, userId) {
+  const { data: existingAgent } = await admin.from("users").select("id").eq("id", userId).maybeSingle();
+  if (existingAgent) return false;
+  const { data: existingClientJourney } = await admin
+    .from("journeys")
+    .select("id")
+    .eq("client_user_id", userId)
+    .maybeSingle();
+  return !existingClientJourney;
 }
 
 // Sends (or resends) the title company's portal invite — the deliberate,
@@ -1260,6 +1289,16 @@ export async function inviteTitleCompanyContact(contactId, journeyId) {
     throw new Error(`Couldn't create the invite: ${linkError.message}`);
   }
 
+  // The magiclink fallback above resolves to whatever Auth account
+  // already owns this email — if that's an existing agent or client
+  // login rather than a genuine new title company contact, stop here
+  // rather than linking this row to someone else's real account.
+  if (!isReinvite && !(await isSafeTitleCompanyUserId(admin, linkData.user.id))) {
+    throw new Error(
+      "That email already belongs to an existing Lighthouse login and can't be used for a title company invite. Use a different email address."
+    );
+  }
+
   await supabase
     .from("title_company_contacts")
     .update({ user_id: linkData.user.id, invited_at: new Date().toISOString() })
@@ -1302,6 +1341,17 @@ export async function setTitleCompanyAccess(contactId, journeyId, revoke) {
   }
 
   const admin = createAdminClient();
+
+  // Same guard as removeTitleCompanyContact — refuse to ban/unban
+  // whatever's behind this user_id if it turns out to be a real agent
+  // or client account rather than a genuine title company login.
+  if (!(await isSafeTitleCompanyUserId(admin, contact.user_id))) {
+    Sentry.captureException(
+      new Error(`Refused to ${revoke ? "ban" : "unban"} auth user ${contact.user_id}: belongs to an agent or client, not a title company contact.`)
+    );
+    throw new Error("This contact's access can't be safely changed right now — please contact support.");
+  }
+
   const { error: banError } = await admin.auth.admin.updateUserById(contact.user_id, {
     ban_duration: revoke ? INDEFINITE_BAN : "none",
   });
