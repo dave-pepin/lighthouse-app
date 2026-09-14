@@ -136,12 +136,9 @@ export default function JourneyCard({ journey, currentMilestoneLabel }) {
             {journey.closed_at ? `Closed ${formatClosedDate(journey.closed_at)}` : "Closing date not set"}
           </span>
         ) : (
-          <>
-            <span style={{ flex: 1, minWidth: 0, overflowWrap: "break-word" }}>Next: {journey.next_action}</span>
-            <span className="lh-mono" style={{ color: "var(--lh-slate-light)", fontSize: 11, flexShrink: 0 }}>
-              {timeAgo(journey.last_activity_at)}
-            </span>
-          </>
+          <span className="lh-mono" style={{ color: "var(--lh-slate-light)", fontSize: 11, marginLeft: "auto" }}>
+            {timeAgo(journey.last_activity_at)}
+          </span>
         )}
       </div>
     </button>
