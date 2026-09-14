@@ -5,7 +5,48 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { stagesForRole, stageLabel } from "@/components/CourseLine";
 import { formatUSPhoneInput } from "@/lib/phone";
+import ProductTour from "@/components/ProductTour";
 import { createJourney } from "./actions";
+
+const tourSteps = [
+  {
+    target: "body",
+    placement: "center",
+    disableBeacon: true,
+    title: "Building a Journey",
+    content: "A quick look at how setting up a new client works — click Next to continue, or Skip anytime.",
+  },
+  {
+    target: '[data-tour="client-name"]',
+    disableBeacon: true,
+    title: "Client name",
+    content: "Start with your client's name — everything else on this page is set up around them.",
+  },
+  {
+    target: '[data-tour="role-stage"]',
+    disableBeacon: true,
+    title: "Role & starting stage",
+    content: "Tell us if they're buying or selling, and roughly where they are in the process right now.",
+  },
+  {
+    target: '[data-tour="milestone-note"]',
+    disableBeacon: true,
+    title: "The checklist builds itself",
+    content: "Based on the role and financing type above, we automatically lay out the milestone checklist for this client, in order.",
+  },
+  {
+    target: '[data-tour="update-preference"]',
+    disableBeacon: true,
+    title: "How they'll hear from you",
+    content: "Choose email, text, or both — this decides what contact info you'll need below.",
+  },
+  {
+    target: '[data-tour="create-journey"]',
+    disableBeacon: true,
+    title: "Create the Journey",
+    content: "Saving takes you straight to the new Journey page, where you can invite the client, add documents, and more.",
+  },
+];
 
 const inputStyle = {
   width: "100%",
@@ -69,16 +110,21 @@ export default function NewJourneyPage() {
         <ChevronLeft size={15} /> Back to the Bridge
       </Link>
 
-      <h1 className="lh-display" style={{ fontSize: 26, fontWeight: 600, margin: "0 0 4px" }}>
-        New Journey
-      </h1>
-      <p style={{ fontSize: 14, color: "var(--lh-slate)", marginBottom: 28 }}>
-        Set up a new client to start guiding through their transaction.
-      </p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, flexWrap: "wrap" }}>
+        <div>
+          <h1 className="lh-display" style={{ fontSize: 26, fontWeight: 600, margin: "0 0 4px" }}>
+            New Journey
+          </h1>
+          <p style={{ fontSize: 14, color: "var(--lh-slate)", marginBottom: 28 }}>
+            Set up a new client to start guiding through their transaction.
+          </p>
+        </div>
+        <ProductTour steps={tourSteps} storageKey="lh_new_journey_tour_seen" label="Take a tour" />
+      </div>
 
       <form action={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         <div style={rowStyle}>
-          <div style={fieldStyle}>
+          <div style={fieldStyle} data-tour="client-name">
             <label style={labelStyle}>Client name</label>
             <input name="client_name" required style={inputStyle} placeholder="e.g. Priya & Sam Waller" />
           </div>
@@ -101,7 +147,7 @@ export default function NewJourneyPage() {
           </div>
         </div>
 
-        <div style={rowStyle}>
+        <div style={rowStyle} data-tour="role-stage">
           <div style={fieldStyle}>
             <label style={labelStyle}>Starting stage</label>
             <select name="stage" required style={inputStyle} value={stage} onChange={(e) => setStage(e.target.value)}>
@@ -135,6 +181,7 @@ export default function NewJourneyPage() {
         </div>
 
         <div
+          data-tour="milestone-note"
           style={{
             background: "var(--lh-teal-soft)",
             border: "1px solid #BFE0DC",
@@ -150,7 +197,7 @@ export default function NewJourneyPage() {
         </div>
 
         {/* Update preference */}
-        <div>
+        <div data-tour="update-preference">
           <label style={labelStyle}>How should they receive weekly updates?</label>
           <select
             name="update_preference"
@@ -230,6 +277,7 @@ export default function NewJourneyPage() {
         <button
           type="submit"
           disabled={submitting}
+          data-tour="create-journey"
           className="lh-focus"
           style={{
             background: "var(--lh-navy)",
