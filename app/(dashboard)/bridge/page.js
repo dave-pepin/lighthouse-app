@@ -3,6 +3,7 @@ import { Plus, Eye } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { GuidanceStrip } from "@/components/JourneyCard";
 import JourneyList from "@/components/JourneyList";
+import BridgeTour from "@/components/BridgeTour";
 import { getEffectiveAgency } from "@/lib/effectiveAgency";
 
 export default async function BridgePage() {
@@ -80,28 +81,32 @@ export default async function BridgePage() {
             Every active Journey, and where each one stands right now.
           </p>
         </div>
-        {!effectiveAgency.isDelegate && (
-          <Link
-            href="/journey/new"
-            className="lh-focus"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              background: "var(--lh-navy)",
-              color: "white",
-              border: "none",
-              borderRadius: 8,
-              padding: "9px 14px",
-              fontSize: 13.5,
-              fontWeight: 600,
-              textDecoration: "none",
-              whiteSpace: "nowrap",
-            }}
-          >
-            <Plus size={15} /> New Journey
-          </Link>
-        )}
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <BridgeTour hasJourneys={!!journeys && journeys.length > 0} />
+          {!effectiveAgency.isDelegate && (
+            <Link
+              href="/journey/new"
+              data-tour="new-journey"
+              className="lh-focus"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                background: "var(--lh-navy)",
+                color: "white",
+                border: "none",
+                borderRadius: 8,
+                padding: "9px 14px",
+                fontSize: 13.5,
+                fontWeight: 600,
+                textDecoration: "none",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <Plus size={15} /> New Journey
+            </Link>
+          )}
+        </div>
       </div>
 
       {error && (

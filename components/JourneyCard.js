@@ -94,6 +94,7 @@ export default function JourneyCard({ journey, currentMilestoneLabel }) {
   return (
     <button
       onClick={() => router.push(`/journey/${journey.id}`)}
+      data-tour="journey-card"
       className="lh-focus lh-anim"
       style={{
         background: "var(--lh-paper)",

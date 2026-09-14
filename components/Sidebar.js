@@ -240,6 +240,7 @@ export default function Sidebar({
                 setMobileOpen(false);
                 router.push(it.href);
               }}
+              data-tour={`nav-${it.key}`}
               className="lh-focus lh-anim"
               style={{
                 display: "flex",
