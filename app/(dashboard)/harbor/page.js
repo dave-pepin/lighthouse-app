@@ -1,5 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
 import JourneyCard from "@/components/JourneyCard";
+import Pagination from "@/components/Pagination";
+import { getEffectiveAgency } from "@/lib/effectiveAgency";
+
+// Harbor is a permanent archive of every closed Journey an agency has
+// ever had — unlike Bridge, there's no natural ceiling (agents don't
+// clear it out), and the cards here are read-only (no drag-reorder, no
+// guidance-flag widget depending on the full list), so a normal page
+// size is fine.
+const PAGE_SIZE = 30;
 
 function parseDateOnly(dateString) {
   const [y, m, d] = dateString.split("-").map(Number);
@@ -27,20 +36,41 @@ function formatAnniversary(date) {
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
-export default async function HarborPage() {
+export default async function HarborPage({ searchParams }) {
   const supabase = await createClient();
+  const { page: pageParam } = await searchParams;
+  const currentPage = Math.max(1, parseInt(pageParam, 10) || 1);
 
-  const { data: journeys } = await supabase
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const effectiveAgency = await getEffectiveAgency(supabase, user.id);
+
+  // Anniversaries need every closed Journey, not just the current page —
+  // an upcoming anniversary could belong to any of them. Narrow columns
+  // keep this cheap even as the archive grows into the hundreds.
+  const { data: anniversarySourceJourneys } = await supabase
     .from("journeys")
-    .select("*")
+    .select("id, client_name, property_address, closed_at, anniversary_reminder_enabled")
+    .eq("agency_id", effectiveAgency.agencyId)
     .eq("stage", "Harbor")
-    .order("last_activity_at", { ascending: false });
+    .eq("anniversary_reminder_enabled", true)
+    .not("closed_at", "is", null);
+
+  const from = (currentPage - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+  const { data: journeys, count: totalCount } = await supabase
+    .from("journeys")
+    .select("*", { count: "exact" })
+    .eq("agency_id", effectiveAgency.agencyId)
+    .eq("stage", "Harbor")
+    .order("last_activity_at", { ascending: false })
+    .range(from, to);
 
   // Clients opted in to an anniversary reminder, soonest upcoming first —
   // a persistent at-a-glance list so an agent doesn't have to open each
   // Journey to remember who's coming up.
-  const anniversaries = (journeys || [])
-    .filter((j) => j.anniversary_reminder_enabled && j.closed_at)
+  const anniversaries = (anniversarySourceJourneys || [])
     .map((j) => {
       const { year: closedYear } = parseDateOnly(j.closed_at);
       const next = nextAnniversary(j.closed_at);
@@ -123,6 +153,8 @@ export default async function HarborPage() {
           </div>
         )}
       </div>
+
+      <Pagination basePath="/harbor" currentPage={currentPage} pageSize={PAGE_SIZE} totalCount={totalCount || 0} />
     </div>
   );
 }

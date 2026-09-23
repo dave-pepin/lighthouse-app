@@ -4,24 +4,52 @@ import { createClient } from "@/lib/supabase/server";
 import { GuidanceStrip } from "@/components/JourneyCard";
 import JourneyList from "@/components/JourneyList";
 import BridgeTour from "@/components/BridgeTour";
+import Pagination from "@/components/Pagination";
 import { getEffectiveAgency } from "@/lib/effectiveAgency";
 
-export default async function BridgePage() {
+// Large relative to any realistic active-journey count (agents naturally
+// move things to Harbor or cancel them when done, so this rarely gets
+// anywhere near 150) — drag-to-reorder and the guidance-flag widget both
+// expect to see the whole active list, so this only exists to cap the
+// genuinely degenerate case of hundreds of active Journeys piling up,
+// not to paginate normal day-to-day usage.
+const PAGE_SIZE = 150;
+
+export default async function BridgePage({ searchParams }) {
   const supabase = await createClient();
+  const { page: pageParam } = await searchParams;
+  const currentPage = Math.max(1, parseInt(pageParam, 10) || 1);
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
   const effectiveAgency = await getEffectiveAgency(supabase, user.id);
 
-  const { data: journeys, error } = await supabase
+  // Needs every active Journey, not just the current page — an agent
+  // shouldn't miss a flagged Journey just because it's sitting on a page
+  // they're not viewing. Narrow columns keep this cheap even at scale.
+  const { data: guidanceJourneys } = await supabase
     .from("journeys")
-    .select("*")
+    .select("id, client_name, status_level, guidance_note")
+    .eq("agency_id", effectiveAgency.agencyId)
+    .neq("stage", "Harbor")
+    .eq("cancelled", false);
+
+  const from = (currentPage - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+  const {
+    data: journeys,
+    error,
+    count: totalCount,
+  } = await supabase
+    .from("journeys")
+    .select("*", { count: "exact" })
     .eq("agency_id", effectiveAgency.agencyId)
     .neq("stage", "Harbor")
     .eq("cancelled", false)
     .order("bridge_sort_order", { ascending: true, nullsFirst: false })
-    .order("last_activity_at", { ascending: false });
+    .order("last_activity_at", { ascending: false })
+    .range(from, to);
 
   // One bulk query for every Journey's milestones, instead of one query
   // per card, so the current-milestone badge (same idea as the Journey
@@ -115,7 +143,7 @@ export default async function BridgePage() {
         </div>
       )}
 
-      {journeys && <GuidanceStrip journeys={journeys} />}
+      {guidanceJourneys && <GuidanceStrip journeys={guidanceJourneys} />}
 
       {journeys && journeys.length > 0 ? (
         <JourneyList
@@ -128,6 +156,8 @@ export default async function BridgePage() {
       ) : (
         <div style={{ color: "var(--lh-slate)", fontSize: 14 }}>No active Journeys yet. Add one to get started.</div>
       )}
+
+      <Pagination basePath="/bridge" currentPage={currentPage} pageSize={PAGE_SIZE} totalCount={totalCount || 0} />
     </div>
   );
 }
