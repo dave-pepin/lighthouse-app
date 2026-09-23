@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { GripVertical } from "lucide-react";
+import { GripVertical, Plus } from "lucide-react";
 import { setMilestoneEnabled, reorderMilestoneStage } from "./actions";
 import { flattenTemplateForRole, sortLabelsByOverride, isLabelEnabled } from "@/lib/milestoneTemplates";
 import { reorderById } from "@/lib/reorder";
@@ -37,6 +37,17 @@ function buildRoleRows(role, overrideRows) {
     (overridesByStage[o.stage] ||= []).push(o);
   }
 
+  // Agent-added custom milestones — override rows whose label isn't part
+  // of the stock template at all — get folded into their stage's list too.
+  for (const stage of stagesInOrder) {
+    const customLabels = (overridesByStage[stage] || [])
+      .map((o) => o.label)
+      .filter((label) => !labelsByStage[stage].includes(label));
+    if (customLabels.length > 0) {
+      labelsByStage[stage] = [...labelsByStage[stage], ...customLabels];
+    }
+  }
+
   const rows = [];
   for (const stage of stagesInOrder) {
     const ordered = sortLabelsByOverride(labelsByStage[stage], overridesByStage[stage]);
@@ -44,7 +55,7 @@ function buildRoleRows(role, overrideRows) {
       rows.push({
         stage,
         label,
-        variantNote: variantByKey.get(`${stage}::${label}`),
+        variantNote: variantByKey.get(`${stage}::${label}`) || null,
         enabled: isLabelEnabled(label, overridesByStage[stage]),
       });
     }
@@ -59,6 +70,7 @@ export default function MilestoneTemplateSettings({ templateSettings }) {
     Selling: buildRoleRows("Selling", templateSettings),
   }));
   const [rowError, setRowError] = useState("");
+  const [newLabelByStage, setNewLabelByStage] = useState({});
   const [draggedLabel, setDraggedLabel] = useState(null);
   const [dragOverLabel, setDragOverLabel] = useState(null);
   // Mirrors draggedLabel synchronously so dragover/drop can read it
@@ -142,6 +154,39 @@ export default function MilestoneTemplateSettings({ templateSettings }) {
     setDragOverLabel(null);
   };
 
+  // Adds a brand-new milestone (not part of the stock template) to the
+  // end of one stage's list. Reuses reorderMilestoneStage rather than a
+  // separate server action — persisting the new full order for the
+  // stage, with the new label appended, is exactly what "add" needs, and
+  // it defaults to enabled: true the same way a reorder of existing
+  // labels leaves enabled untouched (see the action's comment).
+  const handleAddMilestone = (stage) => {
+    const raw = (newLabelByStage[stage] || "").trim();
+    if (!raw) return;
+
+    const stageLabels = rows.filter((r) => r.stage === stage).map((r) => r.label);
+    if (stageLabels.some((label) => label.toLowerCase() === raw.toLowerCase())) {
+      setRowError("That milestone already exists in this stage.");
+      return;
+    }
+
+    const previousRows = rows;
+    const nextRows = [...rows];
+    // Insert right after the last existing row of this stage, preserving
+    // the stage-contiguous ordering the render relies on for grouping.
+    const insertAt = nextRows.reduce((last, row, i) => (row.stage === stage ? i : last), -1) + 1;
+    nextRows.splice(insertAt, 0, { stage, label: raw, variantNote: null, enabled: true });
+
+    setRowsByRole((cur) => ({ ...cur, [activeRole]: nextRows }));
+    setNewLabelByStage((cur) => ({ ...cur, [stage]: "" }));
+    setRowError("");
+
+    reorderMilestoneStage(activeRole, stage, [...stageLabels, raw]).catch((err) => {
+      setRowsByRole((cur) => ({ ...cur, [activeRole]: previousRows }));
+      setRowError(err.message || "Couldn't add that milestone.");
+    });
+  };
+
   let lastStage = null;
 
   return (
@@ -171,9 +216,10 @@ export default function MilestoneTemplateSettings({ templateSettings }) {
       {rowError && <div style={{ fontSize: 11.5, color: "#B4472A", marginBottom: 10 }}>{rowError}</div>}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        {rows.map((row) => {
+        {rows.map((row, index) => {
           const showStageHeader = row.stage !== lastStage;
           lastStage = row.stage;
+          const isLastInStage = index === rows.length - 1 || rows[index + 1].stage !== row.stage;
 
           return (
             <div key={`${row.stage}::${row.label}`}>
@@ -242,6 +288,51 @@ export default function MilestoneTemplateSettings({ templateSettings }) {
                   <GripVertical size={14} color="var(--lh-slate-light)" />
                 </div>
               </div>
+              {isLastInStage && (
+                <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "6px 0 4px 24px" }}>
+                  <input
+                    value={newLabelByStage[row.stage] || ""}
+                    onChange={(e) => setNewLabelByStage((cur) => ({ ...cur, [row.stage]: e.target.value }))}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddMilestone(row.stage);
+                      }
+                    }}
+                    placeholder="Add a milestone..."
+                    className="lh-focus"
+                    style={{
+                      flex: "1 1 auto",
+                      minWidth: 0,
+                      border: "1px solid var(--lh-line)",
+                      borderRadius: 7,
+                      padding: "5px 8px",
+                      fontSize: 12.5,
+                      fontFamily: "inherit",
+                    }}
+                  />
+                  <button
+                    onClick={() => handleAddMilestone(row.stage)}
+                    className="lh-focus"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      background: "none",
+                      border: "1px solid var(--lh-line)",
+                      borderRadius: 7,
+                      padding: "5px 10px",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: "var(--lh-navy-soft)",
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    <Plus size={12} /> Add
+                  </button>
+                </div>
+              )}
             </div>
           );
         })}
