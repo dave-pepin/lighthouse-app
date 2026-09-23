@@ -223,6 +223,76 @@ export async function setMilestoneVideoDefault(role, stage, label, videoId) {
   revalidatePath("/settings");
 }
 
+// Turns one template milestone on or off for this agency, for every new
+// Journey of that role going forward. Doesn't touch already-created
+// Journeys' milestones. A row with no prior override defaults to
+// enabled: true (the stock template), so this only needs to write the
+// column being changed — sort_order, if any was already set, is left
+// alone by the upsert since it isn't included in this payload.
+export async function setMilestoneEnabled(role, stage, label, enabled) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error("Not signed in.");
+  }
+
+  const { data: profile } = await supabase.from("users").select("agency_id").eq("id", user.id).maybeSingle();
+  if (!profile?.agency_id) {
+    throw new Error("Couldn't find your agency.");
+  }
+
+  const { error } = await supabase
+    .from("milestone_template_settings")
+    .upsert({ agency_id: profile.agency_id, role, stage, label, enabled }, { onConflict: "agency_id,role,stage,label" });
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/settings");
+}
+
+// Persists a full drag-reorder of one stage's milestones (for one role)
+// as an agency override per label. Every label in the stage gets an
+// explicit sort_order, including ones with no prior override row —
+// those get enabled: true from the column default since this payload
+// doesn't include enabled, which also leaves already-set enabled values
+// on existing rows untouched.
+export async function reorderMilestoneStage(role, stage, orderedLabels) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error("Not signed in.");
+  }
+
+  const { data: profile } = await supabase.from("users").select("agency_id").eq("id", user.id).maybeSingle();
+  if (!profile?.agency_id) {
+    throw new Error("Couldn't find your agency.");
+  }
+
+  const rows = orderedLabels.map((label, index) => ({
+    agency_id: profile.agency_id,
+    role,
+    stage,
+    label,
+    sort_order: index,
+  }));
+
+  const { error } = await supabase
+    .from("milestone_template_settings")
+    .upsert(rows, { onConflict: "agency_id,role,stage,label" });
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/settings");
+}
+
 const IMAGE_FIELDS = [
   "trusted_contractors_image",
   "maintenance_image",

@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { stagesForRole } from "@/components/CourseLine";
-import { buildMilestoneTemplate, MILESTONE_STAGE_ORDER } from "@/lib/milestoneTemplates";
+import { buildMilestoneTemplate, MILESTONE_STAGE_ORDER, applyTemplateOverrides } from "@/lib/milestoneTemplates";
 import { toE164 } from "@/lib/phone";
 import { redirect } from "next/navigation";
 
@@ -118,10 +118,22 @@ export async function createJourney(formData) {
     videoDefaultsByKey[`${d.stage}::${d.label}`] = d.video_id;
   }
 
+  // Apply this agency's milestone template customizations (Settings —
+  // enabled/disabled, custom order within a stage), if any.
+  const { data: templateSettings } = await supabase
+    .from("milestone_template_settings")
+    .select("stage, label, enabled, sort_order")
+    .eq("agency_id", profile.agency_id)
+    .eq("role", role);
+  const overridesByStage = {};
+  for (const o of templateSettings || []) {
+    (overridesByStage[o.stage] ||= []).push(o);
+  }
+
   const rows = [];
   let order = 1;
   for (const stageName of MILESTONE_STAGE_ORDER[role] || MILESTONE_STAGE_ORDER.Buying) {
-    const labels = template[stageName] || [];
+    const labels = applyTemplateOverrides(template[stageName] || [], overridesByStage[stageName]);
     for (const label of labels) {
       rows.push({
         journey_id: journey.id,

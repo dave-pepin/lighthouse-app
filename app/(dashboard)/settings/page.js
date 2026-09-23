@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import SettingsForm from "./SettingsForm";
 import MilestoneVideoDefaults from "./MilestoneVideoDefaults";
+import MilestoneTemplateSettings from "./MilestoneTemplateSettings";
 import AgentContactForm from "./AgentContactForm";
 import OverdueDigestForm from "./OverdueDigestForm";
 import MarketImpactDigestForm from "./MarketImpactDigestForm";
@@ -108,6 +109,14 @@ export default async function SettingsPage() {
       .select("role, stage, label, video_id")
       .eq("agency_id", profile.agency_id),
   ]);
+
+  // This agency's overrides (enabled/disabled, custom order) on top of
+  // the stock milestone template — no rows means the stock template
+  // applies as-is. Needed to render MilestoneTemplateSettings below.
+  const { data: templateSettings } = await supabase
+    .from("milestone_template_settings")
+    .select("role, stage, label, enabled, sort_order")
+    .eq("agency_id", profile.agency_id);
 
   // The delegate's full_name lives on their `users` row in a DIFFERENT
   // agency, which the RLS-scoped client can't see (users SELECT is
@@ -228,6 +237,18 @@ export default async function SettingsPage() {
           videoLibrary={videoLibraryWithUrls}
           videoDefaults={videoDefaults || []}
         />
+      </div>
+
+      <div style={{ marginTop: 40 }}>
+        <h2 className="lh-display" style={{ fontSize: 20, fontWeight: 600, margin: "0 0 4px" }}>
+          Milestone Checklist
+        </h2>
+        <p style={{ fontSize: 14, color: "var(--lh-slate)", marginBottom: 20 }}>
+          Turn off any default milestones you don&apos;t use, and drag to reorder the rest within
+          their stage. This applies to new Journeys going forward; it won&apos;t change milestones
+          on Journeys you&apos;ve already started.
+        </p>
+        <MilestoneTemplateSettings templateSettings={templateSettings || []} />
       </div>
     </div>
   );
