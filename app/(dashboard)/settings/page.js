@@ -191,9 +191,21 @@ export default async function SettingsPage() {
           />
         </div>
 
-        <OverdueDigestForm thresholdDays={profile.overdue_digest_threshold_days} />
-
         <MarketImpactDigestForm frequency={profile.market_impact_report_frequency} />
+
+        <OverdueDigestForm thresholdDays={profile.overdue_digest_threshold_days} />
+      </div>
+
+      <div style={{ marginBottom: 40 }}>
+        <h2 className="lh-display" style={{ fontSize: 20, fontWeight: 600, margin: "0 0 4px" }}>
+          Milestone Checklist
+        </h2>
+        <p style={{ fontSize: 14, color: "var(--lh-slate)", marginBottom: 20 }}>
+          Turn off any default milestones you don&apos;t use, and drag to reorder the rest within
+          their stage. This applies to new Journeys going forward; it won&apos;t change milestones
+          on Journeys you&apos;ve already started.
+        </p>
+        <MilestoneTemplateSettings templateSettings={templateSettings || []} />
       </div>
 
       <div style={{ marginBottom: 40 }}>
@@ -237,18 +249,6 @@ export default async function SettingsPage() {
           videoLibrary={videoLibraryWithUrls}
           videoDefaults={videoDefaults || []}
         />
-      </div>
-
-      <div style={{ marginTop: 40 }}>
-        <h2 className="lh-display" style={{ fontSize: 20, fontWeight: 600, margin: "0 0 4px" }}>
-          Milestone Checklist
-        </h2>
-        <p style={{ fontSize: 14, color: "var(--lh-slate)", marginBottom: 20 }}>
-          Turn off any default milestones you don&apos;t use, and drag to reorder the rest within
-          their stage. This applies to new Journeys going forward; it won&apos;t change milestones
-          on Journeys you&apos;ve already started.
-        </p>
-        <MilestoneTemplateSettings templateSettings={templateSettings || []} />
       </div>
     </div>
   );
