@@ -70,6 +70,10 @@ export default function PrivacyPolicyPage() {
             any message, or by telling your agent directly. Reply <strong>HELP</strong> for
             assistance.
           </p>
+          <p style={pStyle}>
+            We do not share, sell, or provide your mobile phone number or messaging consent
+            data to third parties or affiliates for marketing or promotional purposes.
+          </p>
         </div>
 
         <div style={sectionStyle}>
