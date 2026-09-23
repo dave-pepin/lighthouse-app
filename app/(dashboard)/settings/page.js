@@ -191,9 +191,10 @@ export default async function SettingsPage() {
           />
         </div>
 
-        <MarketImpactDigestForm frequency={profile.market_impact_report_frequency} />
-
-        <OverdueDigestForm thresholdDays={profile.overdue_digest_threshold_days} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          <MarketImpactDigestForm frequency={profile.market_impact_report_frequency} />
+          <OverdueDigestForm thresholdDays={profile.overdue_digest_threshold_days} />
+        </div>
       </div>
 
       <div style={{ marginBottom: 40 }}>
