@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
+import { getSignedStorageUrl } from "@/lib/signedStorageUrl";
 
 // Small JSON endpoint so the global Sidebar (which renders on every
 // dashboard page, not just the journey detail page) can pull a specific
@@ -33,14 +33,8 @@ export async function GET(request, { params }) {
     return NextResponse.json({ photos: [] });
   }
 
-  const admin = createAdminClient();
   const withLinks = await Promise.all(
-    photos.map(async (p) => {
-      const { data } = await admin.storage
-        .from("property-photos")
-        .createSignedUrl(p.storage_path, 60 * 60);
-      return { id: p.id, url: data?.signedUrl || null };
-    })
+    photos.map(async (p) => ({ id: p.id, url: await getSignedStorageUrl("property-photos", p.storage_path) }))
   );
 
   return NextResponse.json({ photos: withLinks });

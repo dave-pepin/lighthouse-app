@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getSignedStorageUrl } from "@/lib/signedStorageUrl";
 import { redirect } from "next/navigation";
 import SettingsForm from "./SettingsForm";
 import MilestoneVideoDefaults from "./MilestoneVideoDefaults";
@@ -44,32 +45,19 @@ export default async function SettingsPage() {
 
   // Signed preview links for whatever resource images are already
   // uploaded — the bucket is private, so this has to go through the
-  // admin client.
+  // admin client. Cached (see lib/signedStorageUrl.js) since these are
+  // re-requested on every Settings page load otherwise.
   const admin = createAdminClient();
   const imageUrls = {};
 
-  const [brandingPhotoSigned, brandingLogoSigned] = await Promise.all([
-    profile.profile_photo_path
-      ? admin.storage.from("agent-branding").createSignedUrl(profile.profile_photo_path, 60 * 60)
-      : Promise.resolve({ data: null }),
-    profile.logo_path
-      ? admin.storage.from("agent-branding").createSignedUrl(profile.logo_path, 60 * 60)
-      : Promise.resolve({ data: null }),
+  const [brandingPhotoUrl, brandingLogoUrl] = await Promise.all([
+    getSignedStorageUrl("agent-branding", profile.profile_photo_path),
+    getSignedStorageUrl("agent-branding", profile.logo_path),
   ]);
-  const brandingPhotoUrl = brandingPhotoSigned.data?.signedUrl || null;
-  const brandingLogoUrl = brandingLogoSigned.data?.signedUrl || null;
   if (agency) {
     await Promise.all(
       IMAGE_FIELDS.map(async ([column, key]) => {
-        const path = agency[column];
-        if (!path) {
-          imageUrls[key] = null;
-          return;
-        }
-        const { data } = await admin.storage
-          .from("harbor-resources")
-          .createSignedUrl(path, 60 * 60);
-        imageUrls[key] = data?.signedUrl || null;
+        imageUrls[key] = await getSignedStorageUrl("harbor-resources", agency[column]);
       })
     );
   }
@@ -90,8 +78,7 @@ export default async function SettingsPage() {
       resourceItemRows.map(async (row) => {
         let signedUrl = null;
         if (row.kind === "file" && row.storage_path) {
-          const { data } = await admin.storage.from("harbor-resources").createSignedUrl(row.storage_path, 60 * 60);
-          signedUrl = data?.signedUrl || null;
+          signedUrl = await getSignedStorageUrl("harbor-resources", row.storage_path);
         }
         const item = { id: row.id, kind: row.kind, fileType: row.file_type, url: row.url, label: row.label, signedUrl };
         resourceItems[row.section]?.push(item);
@@ -144,10 +131,10 @@ export default async function SettingsPage() {
   let videoLibraryWithUrls = [];
   if (videoLibrary && videoLibrary.length > 0) {
     videoLibraryWithUrls = await Promise.all(
-      videoLibrary.map(async (v) => {
-        const { data } = await admin.storage.from("milestone-videos").createSignedUrl(v.storage_path, 60 * 60);
-        return { ...v, url: data?.signedUrl || null };
-      })
+      videoLibrary.map(async (v) => ({
+        ...v,
+        url: await getSignedStorageUrl("milestone-videos", v.storage_path),
+      }))
     );
   }
 

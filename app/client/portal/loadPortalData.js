@@ -8,6 +8,8 @@
 // whether that's "this is the client's own Journey" or "this agent owns
 // this Journey") plus the caller's own RLS-scoped Supabase client and an
 // admin client for the private-storage signed URLs.
+import { getSignedStorageUrl } from "@/lib/signedStorageUrl";
+
 export async function loadPortalData(supabase, admin, journey, { previewMode = false } = {}) {
   const [{ data: milestones }, { data: documents }, { data: updates }, { data: propertyPhotos }, { data: documentRequests }] =
     await Promise.all([
@@ -55,20 +57,14 @@ export async function loadPortalData(supabase, admin, journey, { previewMode = f
   let documentsWithLinks = [];
   if (documents && documents.length > 0) {
     documentsWithLinks = await Promise.all(
-      documents.map(async (d) => {
-        const { data } = await admin.storage.from("documents").createSignedUrl(d.storage_path, 60 * 60);
-        return { ...d, url: data?.signedUrl || null };
-      })
+      documents.map(async (d) => ({ ...d, url: await getSignedStorageUrl("documents", d.storage_path) }))
     );
   }
 
   let propertyPhotosWithLinks = [];
   if (propertyPhotos && propertyPhotos.length > 0) {
     propertyPhotosWithLinks = await Promise.all(
-      propertyPhotos.map(async (p) => {
-        const { data } = await admin.storage.from("property-photos").createSignedUrl(p.storage_path, 60 * 60);
-        return { ...p, url: data?.signedUrl || null };
-      })
+      propertyPhotos.map(async (p) => ({ ...p, url: await getSignedStorageUrl("property-photos", p.storage_path) }))
     );
   }
 
@@ -95,18 +91,14 @@ export async function loadPortalData(supabase, admin, journey, { previewMode = f
   // Independently optional — an agent can set none, some, or all of
   // these. The footer itself (PortalView) only renders when a photo or
   // logo is actually present.
-  const [brandingPhotoSigned, brandingLogoSigned] = await Promise.all([
-    agentProfile?.profile_photo_path
-      ? admin.storage.from("agent-branding").createSignedUrl(agentProfile.profile_photo_path, 60 * 60)
-      : Promise.resolve({ data: null }),
-    agentProfile?.logo_path
-      ? admin.storage.from("agent-branding").createSignedUrl(agentProfile.logo_path, 60 * 60)
-      : Promise.resolve({ data: null }),
+  const [brandingPhotoUrl, brandingLogoUrl] = await Promise.all([
+    getSignedStorageUrl("agent-branding", agentProfile?.profile_photo_path),
+    getSignedStorageUrl("agent-branding", agentProfile?.logo_path),
   ]);
 
   const agentBranding = {
-    photoUrl: brandingPhotoSigned.data?.signedUrl || null,
-    logoUrl: brandingLogoSigned.data?.signedUrl || null,
+    photoUrl: brandingPhotoUrl,
+    logoUrl: brandingLogoUrl,
     brandColor: agentProfile?.brand_color || null,
     fullName: guideName,
     showName: agentProfile?.show_footer_name !== false,
@@ -134,18 +126,12 @@ export async function loadPortalData(supabase, admin, journey, { previewMode = f
       referralNote = agency.referral_note;
 
       if (inHarbor) {
-        const signResourceImage = async (path) => {
-          if (!path) return null;
-          const { data } = await admin.storage.from("harbor-resources").createSignedUrl(path, 60 * 60);
-          return data?.signedUrl || null;
-        };
-
         const [trustedContractorsImageUrl, maintenanceImageUrl, propertyTaxImageUrl, homeValueImageUrl] =
           await Promise.all([
-            signResourceImage(agency.trusted_contractors_image),
-            signResourceImage(agency.maintenance_image),
-            signResourceImage(agency.property_tax_image),
-            signResourceImage(agency.home_value_image),
+            getSignedStorageUrl("harbor-resources", agency.trusted_contractors_image),
+            getSignedStorageUrl("harbor-resources", agency.maintenance_image),
+            getSignedStorageUrl("harbor-resources", agency.property_tax_image),
+            getSignedStorageUrl("harbor-resources", agency.home_value_image),
           ]);
 
         // Each section's extra files/links (see
@@ -159,10 +145,7 @@ export async function loadPortalData(supabase, admin, journey, { previewMode = f
           if (!path) return null;
           const extensionMatch = path.match(/\.[^./]+$/);
           const downloadName = `${label}${extensionMatch ? extensionMatch[0] : ""}`;
-          const { data } = await admin.storage
-            .from("harbor-resources")
-            .createSignedUrl(path, 60 * 60, { download: downloadName });
-          return data?.signedUrl || null;
+          return getSignedStorageUrl("harbor-resources", path, 60 * 60, downloadName);
         };
 
         const { data: resourceItemRows } = await admin
@@ -220,8 +203,7 @@ export async function loadPortalData(supabase, admin, journey, { previewMode = f
     if (videoRows) {
       await Promise.all(
         videoRows.map(async (v) => {
-          const { data } = await admin.storage.from("milestone-videos").createSignedUrl(v.storage_path, 60 * 60);
-          videoUrlById[v.id] = data?.signedUrl || null;
+          videoUrlById[v.id] = await getSignedStorageUrl("milestone-videos", v.storage_path);
         })
       );
     }

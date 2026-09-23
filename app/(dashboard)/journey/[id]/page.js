@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getSignedStorageUrl } from "@/lib/signedStorageUrl";
 import JourneyDetailClient from "./JourneyDetailClient";
 import { notFound, redirect } from "next/navigation";
 import { getEffectiveAgency } from "@/lib/effectiveAgency";
@@ -84,12 +85,10 @@ export default async function JourneyDetailPage({ params }) {
   let documentsWithLinks = [];
   if (documents && documents.length > 0) {
     documentsWithLinks = await Promise.all(
-      documents.map(async (d) => {
-        const { data } = await admin.storage
-          .from("documents")
-          .createSignedUrl(d.storage_path, 60 * 60);
-        return { ...d, url: data?.signedUrl || null };
-      })
+      documents.map(async (d) => ({
+        ...d,
+        url: await getSignedStorageUrl("documents", d.storage_path),
+      }))
     );
   }
 
@@ -103,10 +102,7 @@ export default async function JourneyDetailPage({ params }) {
       videoLibrary
         .filter((v) => attachedVideoIds.has(v.id))
         .map(async (v) => {
-          const { data } = await admin.storage
-            .from("milestone-videos")
-            .createSignedUrl(v.storage_path, 60 * 60);
-          videoUrlById[v.id] = data?.signedUrl || null;
+          videoUrlById[v.id] = await getSignedStorageUrl("milestone-videos", v.storage_path);
         })
     );
   }

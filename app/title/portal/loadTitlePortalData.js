@@ -4,6 +4,8 @@
 // admin client for the private-storage signed URLs. Documents only — no
 // milestones, updates, or photos, since a title company contact's access
 // is scoped to upload/download documents alone.
+import { getSignedStorageUrl } from "@/lib/signedStorageUrl";
+
 export async function loadTitlePortalData(supabase, admin, journeyId) {
   const { data: documents } = await supabase
     .from("documents")
@@ -14,10 +16,7 @@ export async function loadTitlePortalData(supabase, admin, journeyId) {
   let documentsWithLinks = [];
   if (documents && documents.length > 0) {
     documentsWithLinks = await Promise.all(
-      documents.map(async (d) => {
-        const { data } = await admin.storage.from("documents").createSignedUrl(d.storage_path, 60 * 60);
-        return { ...d, url: data?.signedUrl || null };
-      })
+      documents.map(async (d) => ({ ...d, url: await getSignedStorageUrl("documents", d.storage_path) }))
     );
   }
 
