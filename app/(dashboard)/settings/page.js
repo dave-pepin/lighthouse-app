@@ -164,7 +164,7 @@ export default async function SettingsPage() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
           gap: 24,
           marginBottom: 40,
         }}
