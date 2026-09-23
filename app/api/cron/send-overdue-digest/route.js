@@ -24,6 +24,10 @@ const CONCURRENCY_LIMIT = 10;
 // meets their own overdue_digest_threshold_days preference (off, the day
 // it's due, or 1-3 days after) — at most once per agent per day, enforced
 // by users.last_overdue_digest_sent_at (see findOverdueDigestRecipients).
+// Wrapped in a Sentry Cron Monitor so a dead external trigger or a
+// drifted CRON_SECRET actually gets noticed instead of failing silently
+// forever — per-recipient send failures are already handled below and
+// don't trip this. The 401 check stays outside the monitor.
 export async function GET(request) {
   const providedSecret =
     request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ||
@@ -33,15 +37,34 @@ export async function GET(request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const admin = createAdminClient();
   const origin = `https://${request.headers.get("host")}`;
+
+  try {
+    return await Sentry.withMonitor(
+      "send-overdue-digest",
+      async () => runOverdueDigest(origin),
+      {
+        schedule: { type: "crontab", value: "30 7 * * *" },
+        timezone: "America/Chicago",
+        checkinMargin: 90,
+        maxRuntime: 10,
+      }
+    );
+  } catch (err) {
+    Sentry.captureException(err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+async function runOverdueDigest(origin) {
+  const admin = createAdminClient();
 
   const { data: journeys, error: journeysError } = await admin
     .from("journeys")
     .select("id, agent_id, client_name, overdue_digest_paused")
     .neq("stage", "Harbor");
   if (journeysError) {
-    return NextResponse.json({ error: journeysError.message }, { status: 500 });
+    throw new Error(journeysError.message);
   }
 
   // .lte, not .lt — a milestone due today is now a candidate too, since an
@@ -55,7 +78,7 @@ export async function GET(request) {
     .lte("due_date", new Date().toISOString().slice(0, 10))
     .in("journey_id", (journeys || []).map((j) => j.id));
   if (milestonesError) {
-    return NextResponse.json({ error: milestonesError.message }, { status: 500 });
+    throw new Error(milestonesError.message);
   }
 
   const agentIds = [...new Set((journeys || []).map((j) => j.agent_id))];
@@ -64,7 +87,7 @@ export async function GET(request) {
     .select("id, email, full_name, last_overdue_digest_sent_at, overdue_digest_threshold_days")
     .in("id", agentIds);
   if (agentsError) {
-    return NextResponse.json({ error: agentsError.message }, { status: 500 });
+    throw new Error(agentsError.message);
   }
 
   const recipients = findOverdueDigestRecipients({ journeys, candidateMilestones, agents });

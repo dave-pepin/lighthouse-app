@@ -21,6 +21,10 @@ const CONCURRENCY_LIMIT = 10;
 // Journey's own last_market_impact_notified_at is what prevents
 // re-notifying the same anniversary again tomorrow — see
 // findMarketImpactDigestRecipients.
+// Wrapped in a Sentry Cron Monitor so a dead external trigger or a
+// drifted CRON_SECRET actually gets noticed instead of failing silently
+// forever — per-recipient send failures are already handled below and
+// don't trip this. The 401 check stays outside the monitor.
 export async function GET(request) {
   const providedSecret =
     request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ||
@@ -30,8 +34,27 @@ export async function GET(request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const admin = createAdminClient();
   const origin = `https://${request.headers.get("host")}`;
+
+  try {
+    return await Sentry.withMonitor(
+      "send-market-impact-digest",
+      async () => runMarketImpactDigest(origin),
+      {
+        schedule: { type: "crontab", value: "30 7 * * *" },
+        timezone: "America/Chicago",
+        checkinMargin: 90,
+        maxRuntime: 10,
+      }
+    );
+  } catch (err) {
+    Sentry.captureException(err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+async function runMarketImpactDigest(origin) {
+  const admin = createAdminClient();
 
   const { data: journeys, error: journeysError } = await admin
     .from("journeys")
@@ -39,7 +62,7 @@ export async function GET(request) {
     .eq("stage", "Harbor")
     .not("closed_at", "is", null);
   if (journeysError) {
-    return NextResponse.json({ error: journeysError.message }, { status: 500 });
+    throw new Error(journeysError.message);
   }
 
   const agentIds = [...new Set((journeys || []).map((j) => j.agent_id))];
@@ -48,7 +71,7 @@ export async function GET(request) {
     .select("id, email, full_name, market_impact_report_frequency")
     .in("id", agentIds);
   if (agentsError) {
-    return NextResponse.json({ error: agentsError.message }, { status: 500 });
+    throw new Error(agentsError.message);
   }
 
   const recipients = findMarketImpactDigestRecipients({ journeys, agents });

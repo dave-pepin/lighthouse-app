@@ -32,6 +32,12 @@ const CONCURRENCY_LIMIT = 10;
 // the platform owner a summary if anything in the batch failed, so a
 // systemic issue (e.g. Twilio/Resend outage, an expired credential)
 // doesn't go unnoticed for days.
+// Wrapped in a Sentry Cron Monitor so a dead external trigger or a
+// drifted CRON_SECRET (this endpoint just never firing at all, as
+// opposed to firing and some sends failing — the latter is already
+// handled per-item below) actually gets noticed instead of failing
+// silently forever. The 401 check stays outside the monitor — an
+// unauthorized ping isn't a "this job didn't run" signal.
 export async function GET(request) {
   const providedSecret =
     request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ||
@@ -41,6 +47,19 @@ export async function GET(request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  try {
+    return await Sentry.withMonitor(
+      "send-scheduled-updates",
+      async () => runScheduledUpdates(),
+      { schedule: { type: "interval", value: 10, unit: "minute" }, checkinMargin: 5, maxRuntime: 10 }
+    );
+  } catch (err) {
+    Sentry.captureException(err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+async function runScheduledUpdates() {
   const admin = createAdminClient();
 
   const { data: dueUpdates, error } = await admin
@@ -50,7 +69,7 @@ export async function GET(request) {
     .lte("scheduled_for", new Date().toISOString());
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    throw new Error(error.message);
   }
 
   const items = new Array((dueUpdates || []).length);
