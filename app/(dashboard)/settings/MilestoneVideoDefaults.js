@@ -87,6 +87,7 @@ export default function MilestoneVideoDefaults({ agencyId, videoLibrary, videoDe
         </label>
         <p style={{ fontSize: 12, color: "var(--lh-slate)", marginBottom: 10, lineHeight: 1.45 }}>
           Upload a video once here, then assign it to whichever milestone(s) it applies to below.
+          Up to 200MB per video, in MP4, MOV, or WebM format.
         </p>
 
         {library.length > 0 && (
