@@ -75,6 +75,11 @@ async function handleCheckoutCompleted(admin, session, origin) {
   });
 
   if (userError) {
+    // Don't leave an orphaned agency behind either — without this, a
+    // Stripe retry's idempotency check (above) finds this half-created
+    // agency and returns early forever, silently short-circuiting before
+    // ever creating a user or sending the welcome email again.
+    await admin.from("agencies").delete().eq("id", agency.id);
     await admin.auth.admin.deleteUser(newUserId);
     throw new Error(userError.message);
   }
