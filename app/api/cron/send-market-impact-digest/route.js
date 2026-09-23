@@ -37,7 +37,7 @@ export async function GET(request) {
   const origin = `https://${request.headers.get("host")}`;
 
   try {
-    return await Sentry.withMonitor(
+    const response = await Sentry.withMonitor(
       "send-market-impact-digest",
       async () => runMarketImpactDigest(origin),
       {
@@ -47,8 +47,16 @@ export async function GET(request) {
         maxRuntime: 10,
       }
     );
+    // withMonitor's check-ins go out over Sentry's async transport buffer —
+    // without an explicit flush, Vercel freezes this lambda the instant we
+    // return, and a check-in still sitting in the buffer never reaches
+    // Sentry at all (the HTTP response itself succeeds either way, so this
+    // fails completely silently without the flush).
+    await Sentry.flush(2000);
+    return response;
   } catch (err) {
     Sentry.captureException(err);
+    await Sentry.flush(2000);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
