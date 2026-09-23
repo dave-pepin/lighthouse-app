@@ -6,6 +6,13 @@ import { Check, ImagePlus, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { updateAgencyResources, setAgencyResourceImage } from "./actions";
 import ResourceItemsList from "./ResourceItemsList";
+import { validateFile } from "@/lib/uploadValidation";
+
+export const HARBOR_RESOURCES_LIMITS = {
+  maxBytes: 25 * 1024 * 1024,
+  allowedMimeTypes: ["application/pdf", "image/jpeg", "image/png", "image/heic", "image/webp", "image/gif"],
+  label: "file",
+};
 
 const labelStyle = {
   fontSize: 13,
@@ -54,6 +61,11 @@ function ResourceImage({ agencyId, field, url, onChanged }) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    const validationError = validateFile(file, HARBOR_RESOURCES_LIMITS);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
     setUploading(true);
     setError("");
     try {

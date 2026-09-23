@@ -7,6 +7,13 @@ import { createClient } from "@/lib/supabase/client";
 import { createVideo } from "@/app/(dashboard)/journey/[id]/actions";
 import { setMilestoneVideoDefault } from "./actions";
 import { flattenTemplateForRole } from "@/lib/milestoneTemplates";
+import { validateFile } from "@/lib/uploadValidation";
+
+const MILESTONE_VIDEO_LIMITS = {
+  maxBytes: 200 * 1024 * 1024,
+  allowedMimeTypes: ["video/mp4", "video/quicktime", "video/webm"],
+  label: "video",
+};
 
 const fieldGroupStyle = {
   background: "var(--lh-paper)",
@@ -45,6 +52,11 @@ export default function MilestoneVideoDefaults({ agencyId, videoLibrary, videoDe
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    const validationError = validateFile(file, MILESTONE_VIDEO_LIMITS);
+    if (validationError) {
+      setUploadError(validationError);
+      return;
+    }
     setUploading(true);
     setUploadError("");
     try {

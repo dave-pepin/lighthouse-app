@@ -25,6 +25,19 @@ import {
 } from "lucide-react";
 import CourseLine, { stagesForRole, stageLabel } from "@/components/CourseLine";
 import { reorderById } from "@/lib/reorder";
+import { validateFile } from "@/lib/uploadValidation";
+
+const MILESTONE_VIDEO_LIMITS = {
+  maxBytes: 200 * 1024 * 1024,
+  allowedMimeTypes: ["video/mp4", "video/quicktime", "video/webm"],
+  label: "video",
+};
+
+const DOCUMENT_LIMITS = {
+  maxBytes: 25 * 1024 * 1024,
+  allowedMimeTypes: ["application/pdf", "image/jpeg", "image/png", "image/heic", "image/webp", "image/gif"],
+  label: "file",
+};
 import { formatUSPhoneInput } from "@/lib/phone";
 import PdfThumbnail from "@/components/PdfThumbnail";
 import StageTag from "@/components/StageTag";
@@ -707,6 +720,12 @@ export default function JourneyDetailClient({
     const file = e.target.files?.[0];
     const milestoneId = videoUploadTargetMilestoneId;
     if (!file || !milestoneId) return;
+    const validationError = validateFile(file, MILESTONE_VIDEO_LIMITS);
+    if (validationError) {
+      setVideoError(validationError);
+      setVideoErrorTargetId(milestoneId);
+      return;
+    }
     setUploadingVideo(true);
     setVideoError("");
     setVideoErrorTargetId(null);
@@ -834,6 +853,12 @@ export default function JourneyDetailClient({
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const validationError = validateFile(file, DOCUMENT_LIMITS);
+    if (validationError) {
+      setUploadError(validationError);
+      setUploadErrorTargetId(uploadTargetMilestoneId);
+      return;
+    }
     setUploading(true);
     setUploadError("");
     setUploadErrorTargetId(null);

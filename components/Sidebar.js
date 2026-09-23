@@ -7,6 +7,13 @@ import { createClient } from "@/lib/supabase/client";
 import { addPropertyPhoto, deletePropertyPhoto, reorderPropertyPhotos } from "@/app/(dashboard)/journey/[id]/actions";
 import { setActiveAgency } from "@/app/(dashboard)/switchAgencyActions";
 import { reorderById } from "@/lib/reorder";
+import { validateFile } from "@/lib/uploadValidation";
+
+const PROPERTY_PHOTO_LIMITS = {
+  maxBytes: 10 * 1024 * 1024,
+  allowedMimeTypes: ["image/jpeg", "image/png", "image/webp", "image/heic", "image/gif"],
+  label: "photo",
+};
 
 const MAX_PHOTOS = 5;
 
@@ -80,9 +87,21 @@ export default function Sidebar({
     setPhotoError("");
     try {
       const remainingSlots = MAX_PHOTOS - photos.length;
-      const filesToUpload = files.slice(0, remainingSlots);
+      const slotLimited = files.slice(0, remainingSlots);
+      const filesToUpload = [];
+      let validationError = "";
+      for (const file of slotLimited) {
+        const error = validateFile(file, PROPERTY_PHOTO_LIMITS);
+        if (error) {
+          validationError = error;
+        } else {
+          filesToUpload.push(file);
+        }
+      }
       if (files.length > remainingSlots) {
         setPhotoError(`Only ${remainingSlots} more will fit (5 max).`);
+      } else if (validationError) {
+        setPhotoError(validationError);
       }
       for (const file of filesToUpload) {
         const path = `${journeyId}/${Date.now()}-${file.name}`;

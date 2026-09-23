@@ -6,6 +6,13 @@ import { Check, ImagePlus, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import AgentBrandingFooter from "@/components/AgentBrandingFooter";
 import { setAgentBrandingImage, updateAgentBrandColor, updateShowFooterName } from "./actions";
+import { validateFile } from "@/lib/uploadValidation";
+
+const BRANDING_IMAGE_LIMITS = {
+  maxBytes: 5 * 1024 * 1024,
+  allowedMimeTypes: ["image/jpeg", "image/png", "image/webp"],
+  label: "image",
+};
 
 const labelStyle = {
   fontSize: 13,
@@ -68,6 +75,11 @@ function BrandingImageSlot({ userId, field, url, label, round, onChanged }) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    const validationError = validateFile(file, BRANDING_IMAGE_LIMITS);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
     setUploading(true);
     setError("");
     try {

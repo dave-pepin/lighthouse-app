@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Video, Image as ImageIcon, FileText, File, Link2, ExternalLink, Upload, Trash2, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { addResourceLink, addResourceFile, removeResourceItem } from "./actions";
+import { HARBOR_RESOURCES_LIMITS } from "./SettingsForm";
+import { validateFile } from "@/lib/uploadValidation";
 
 const FILE_TYPE_ICONS = {
   video: Video,
@@ -167,6 +169,12 @@ export default function ResourceItemsList({ agencyId, section, items = [] }) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    const validationError = validateFile(file, HARBOR_RESOURCES_LIMITS);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    setError("");
     setPendingFile(file);
     if (!label) {
       setLabel(file.name.replace(/\.[^.]+$/, ""));
