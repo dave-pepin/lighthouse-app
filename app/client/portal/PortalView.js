@@ -51,15 +51,14 @@ export default function PortalView({
             }}
           />
           {propertyPhotosWithLinks.length > 1 && (
-            <div style={{ display: "flex", gap: 8, marginTop: 8, overflowX: "auto" }}>
+            <div className="lh-portal-thumbnails" style={{ display: "flex", gap: 8, marginTop: 8, overflowX: "auto" }}>
               {propertyPhotosWithLinks.slice(1).map((p) => (
                 <img
                   key={p.id}
                   src={p.url}
                   alt="Your property"
+                  className="lh-portal-thumbnail"
                   style={{
-                    width: 168,
-                    height: 122,
                     objectFit: "cover",
                     borderRadius: 10,
                     border: "1px solid var(--lh-line)",

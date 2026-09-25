@@ -248,6 +248,16 @@ body {
   height: 260px;
 }
 
+/* The extra photos beyond the hero shot — a horizontal filmstrip on
+   desktop, where there's room to scroll through them at full size. On
+   narrow phones that just ran the row off the edge of the screen with no
+   visible cue it was scrollable, so it wraps onto additional rows there
+   instead — two per row fits the tightened mobile content width. */
+.lh-portal-thumbnail {
+  width: 168px;
+  height: 122px;
+}
+
 @media (max-width: 640px) {
   .lh-portal-content {
     padding: 20px 18px 40px;
@@ -263,6 +273,15 @@ body {
 
   .lh-portal-hero {
     height: 150px;
+  }
+
+  .lh-portal-thumbnails {
+    flex-wrap: wrap;
+  }
+
+  .lh-portal-thumbnail {
+    width: calc(50% - 4px);
+    height: 110px;
   }
 }
 
