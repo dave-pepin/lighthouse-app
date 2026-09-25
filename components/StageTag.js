@@ -39,12 +39,12 @@ export default function StageTag({ stage, statusLevel = "on_course", currentLabe
       className="lh-mono lh-anim"
       style={{
         display: "inline-flex",
-        alignItems: "center",
+        alignItems: "flex-start",
         gap: 6,
         fontSize: 12,
         fontWeight: 600,
         padding: "5px 12px",
-        borderRadius: 20,
+        borderRadius: 14,
         background: level.bg,
         color: "white",
         letterSpacing: "0.03em",
@@ -53,8 +53,8 @@ export default function StageTag({ stage, statusLevel = "on_course", currentLabe
         minWidth: 0,
       }}
     >
-      <Anchor size={13} strokeWidth={2} style={{ flexShrink: 0 }} />
-      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>
+      <Anchor size={13} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1 }} />
+      <span style={{ minWidth: 0, whiteSpace: "normal", lineHeight: 1.4 }}>
         {currentLabel ? (
           <>
             {level.label} · Up next: {currentLabel}
