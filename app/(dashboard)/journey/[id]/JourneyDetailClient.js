@@ -992,12 +992,20 @@ export default function JourneyDetailClient({
           </div>
           <div style={{ fontSize: 13, color: "var(--lh-slate)", marginTop: 2 }}>{journey.role}</div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", minWidth: 0, maxWidth: "100%" }}>
           <button
             onClick={() => setEditingStatus((cur) => !cur)}
             className="lh-focus"
             title="Update status"
-            style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "flex" }}
+            style={{
+              background: "none",
+              border: "none",
+              padding: 0,
+              cursor: "pointer",
+              display: "flex",
+              minWidth: 0,
+              maxWidth: "100%",
+            }}
           >
             <StageTag stage={journey.stage} statusLevel={journey.status_level} currentLabel={currentMilestoneLabel} />
           </button>
