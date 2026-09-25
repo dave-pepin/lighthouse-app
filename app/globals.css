@@ -223,6 +223,49 @@ body {
   }
 }
 
+/* Client portal header + hero photo — on narrow phones, the full-size
+   heading and photo pushed the progress bar (and everything else) below
+   the fold. Below the breakpoint, the heading drops to one line, the
+   photo shrinks to a preview instead of a full screen, the outer padding
+   tightens, and the status pill moves below the heading (full-width)
+   instead of squeezing beside it. */
+.lh-portal-content {
+  padding: 36px 32px 60px;
+}
+
+.lh-portal-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.lh-portal-title {
+  font-size: 26px;
+}
+
+.lh-portal-hero {
+  height: 260px;
+}
+
+@media (max-width: 640px) {
+  .lh-portal-content {
+    padding: 20px 18px 40px;
+  }
+
+  .lh-portal-header-row {
+    flex-direction: column;
+  }
+
+  .lh-portal-title {
+    font-size: 20px;
+  }
+
+  .lh-portal-hero {
+    height: 150px;
+  }
+}
+
 /* Client portal's main content + persistent referral sidebar. The
    sidebar stays sticky alongside the main column on desktop so it's
    visible throughout the scroll, not just once at the top; below 860px

@@ -41,9 +41,9 @@ export default function PortalView({
           <img
             src={propertyPhotosWithLinks[0].url}
             alt="Your property"
+            className="lh-portal-hero"
             style={{
               width: "100%",
-              height: 260,
               objectFit: "cover",
               borderRadius: 16,
               border: "1px solid var(--lh-line)",
@@ -271,10 +271,10 @@ export default function PortalView({
         </div>
       </div>
 
-      <div style={{ maxWidth: referralNote ? 1080 : 760, margin: "0 auto", padding: "36px 32px 60px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+      <div className="lh-portal-content" style={{ maxWidth: referralNote ? 1080 : 760, margin: "0 auto" }}>
+        <div className="lh-portal-header-row" style={{ marginBottom: 8 }}>
           <div>
-            <h1 className="lh-display" style={{ fontSize: 26, fontWeight: 600, margin: 0 }}>
+            <h1 className="lh-display lh-portal-title" style={{ fontWeight: 600, margin: 0 }}>
               Your {journey.role} Journey
             </h1>
             <p style={{ fontSize: 13.5, color: "var(--lh-slate)", marginTop: 2 }}>
