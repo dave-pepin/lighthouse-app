@@ -312,6 +312,18 @@ body {
 @media (max-width: 860px) {
   .lh-portal-layout {
     flex-direction: column;
+    /* align-items: flex-start (set above) exists so the sticky sidebar
+       doesn't stretch to match the main column's height on desktop — but
+       once stacked into a column here, that same flex-start leaves the
+       main column's WIDTH ambiguous, and it was resolving against a
+       deeply nested descendant's min-width (CourseLine's mobile
+       scroll-strip, 700px) instead of the full column width. Overriding
+       back to stretch (the flex default) removes that ambiguity. */
+    align-items: stretch;
+  }
+
+  .lh-portal-main {
+    width: 100%;
   }
 
   .lh-portal-sidebar {
