@@ -6,7 +6,7 @@ import { Video, Image as ImageIcon, FileText, File, Link2, ExternalLink, Upload,
 import { createClient } from "@/lib/supabase/client";
 import { addResourceLink, addResourceFile, removeResourceItem } from "./actions";
 import { HARBOR_RESOURCES_LIMITS } from "./SettingsForm";
-import { validateFile } from "@/lib/uploadValidation";
+import { validateFile, sanitizeFilenameForStorage } from "@/lib/uploadValidation";
 
 const FILE_TYPE_ICONS = {
   video: Video,
@@ -189,7 +189,7 @@ export default function ResourceItemsList({ agencyId, section, items = [] }) {
     setSaving(true);
     setError("");
     try {
-      const path = `${agencyId}/resource-items/${section}-${Date.now()}-${pendingFile.name}`;
+      const path = `${agencyId}/resource-items/${section}-${Date.now()}-${sanitizeFilenameForStorage(pendingFile.name)}`;
       const { error: uploadError } = await supabase.storage.from("harbor-resources").upload(path, pendingFile);
       if (uploadError) {
         throw new Error(uploadError.message || "Couldn't upload that file.");

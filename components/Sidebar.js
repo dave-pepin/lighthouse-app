@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { addPropertyPhoto, deletePropertyPhoto, reorderPropertyPhotos } from "@/app/(dashboard)/journey/[id]/actions";
 import { setActiveAgency } from "@/app/(dashboard)/switchAgencyActions";
 import { reorderById } from "@/lib/reorder";
-import { validateFile } from "@/lib/uploadValidation";
+import { validateFile, sanitizeFilenameForStorage } from "@/lib/uploadValidation";
 
 const PROPERTY_PHOTO_LIMITS = {
   maxBytes: 10 * 1024 * 1024,
@@ -104,7 +104,7 @@ export default function Sidebar({
         setPhotoError(validationError);
       }
       for (const file of filesToUpload) {
-        const path = `${journeyId}/${Date.now()}-${file.name}`;
+        const path = `${journeyId}/${Date.now()}-${sanitizeFilenameForStorage(file.name)}`;
         const { error: uploadError } = await supabase.storage
           .from("property-photos")
           .upload(path, file);

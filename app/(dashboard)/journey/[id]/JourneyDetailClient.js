@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import CourseLine, { stagesForRole, stageLabel } from "@/components/CourseLine";
 import { reorderById } from "@/lib/reorder";
-import { validateFile } from "@/lib/uploadValidation";
+import { validateFile, sanitizeFilenameForStorage } from "@/lib/uploadValidation";
 
 const MILESTONE_VIDEO_LIMITS = {
   maxBytes: 200 * 1024 * 1024,
@@ -730,7 +730,7 @@ export default function JourneyDetailClient({
     setVideoError("");
     setVideoErrorTargetId(null);
     try {
-      const path = `${journey.id}/${Date.now()}-${file.name}`;
+      const path = `${journey.id}/${Date.now()}-${sanitizeFilenameForStorage(file.name)}`;
       const { error: uploadError } = await supabase.storage
         .from("milestone-videos")
         .upload(path, file);
@@ -863,7 +863,7 @@ export default function JourneyDetailClient({
     setUploadError("");
     setUploadErrorTargetId(null);
     try {
-      const path = `${journey.id}/${Date.now()}-${file.name}`;
+      const path = `${journey.id}/${Date.now()}-${sanitizeFilenameForStorage(file.name)}`;
       const { error: uploadError } = await supabase.storage
         .from("documents")
         .upload(path, file);

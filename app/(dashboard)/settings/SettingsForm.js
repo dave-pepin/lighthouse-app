@@ -6,7 +6,7 @@ import { Check, ImagePlus, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { updateAgencyResources, setAgencyResourceImage } from "./actions";
 import ResourceItemsList from "./ResourceItemsList";
-import { validateFile } from "@/lib/uploadValidation";
+import { validateFile, sanitizeFilenameForStorage } from "@/lib/uploadValidation";
 
 export const HARBOR_RESOURCES_LIMITS = {
   maxBytes: 25 * 1024 * 1024,
@@ -69,7 +69,7 @@ function ResourceImage({ agencyId, field, url, onChanged }) {
     setUploading(true);
     setError("");
     try {
-      const path = `${agencyId}/${field}-${Date.now()}-${file.name}`;
+      const path = `${agencyId}/${field}-${Date.now()}-${sanitizeFilenameForStorage(file.name)}`;
       const { error: uploadError } = await supabase.storage
         .from("harbor-resources")
         .upload(path, file);

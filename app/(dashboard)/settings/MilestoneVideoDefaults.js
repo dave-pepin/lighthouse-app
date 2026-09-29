@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { createVideo } from "@/app/(dashboard)/journey/[id]/actions";
 import { setMilestoneVideoDefault } from "./actions";
 import { flattenTemplateForRole } from "@/lib/milestoneTemplates";
-import { validateFile } from "@/lib/uploadValidation";
+import { validateFile, sanitizeFilenameForStorage } from "@/lib/uploadValidation";
 
 const MILESTONE_VIDEO_LIMITS = {
   maxBytes: 200 * 1024 * 1024,
@@ -60,7 +60,7 @@ export default function MilestoneVideoDefaults({ agencyId, videoLibrary, videoDe
     setUploading(true);
     setUploadError("");
     try {
-      const path = `${agencyId}/${Date.now()}-${file.name}`;
+      const path = `${agencyId}/${Date.now()}-${sanitizeFilenameForStorage(file.name)}`;
       const { error: uploadErr } = await supabase.storage.from("milestone-videos").upload(path, file);
       if (uploadErr) {
         throw new Error(uploadErr.message || "Couldn't upload that video.");

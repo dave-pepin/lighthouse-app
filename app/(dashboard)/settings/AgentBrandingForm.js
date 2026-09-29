@@ -6,7 +6,7 @@ import { Check, ImagePlus, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import AgentBrandingFooter from "@/components/AgentBrandingFooter";
 import { setAgentBrandingImage, updateAgentBrandColor, updateShowFooterName } from "./actions";
-import { validateFile } from "@/lib/uploadValidation";
+import { validateFile, sanitizeFilenameForStorage } from "@/lib/uploadValidation";
 
 const BRANDING_IMAGE_LIMITS = {
   maxBytes: 5 * 1024 * 1024,
@@ -83,7 +83,7 @@ function BrandingImageSlot({ userId, field, url, label, round, onChanged }) {
     setUploading(true);
     setError("");
     try {
-      const path = `${userId}/${field}-${Date.now()}-${file.name}`;
+      const path = `${userId}/${field}-${Date.now()}-${sanitizeFilenameForStorage(file.name)}`;
       const { error: uploadError } = await supabase.storage.from("agent-branding").upload(path, file);
       if (uploadError) {
         throw new Error(uploadError.message || "Couldn't upload that image.");
