@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { buildWeeklyUpdateEmail, dispatchWeeklyUpdateSms } from "@/lib/weeklyUpdateSend";
 import { sendEmailBatch, buildAgentEmail, sendAgentEmail } from "@/lib/notify";
 import { runWithConcurrencyLimit } from "@/lib/concurrency";
+import { withProductionMonitor } from "@/lib/cronMonitor";
 
 // Vercel's default function timeout is too short for a large batch at
 // scale — this is the Pro plan's max for a standard serverless function.
@@ -48,7 +49,7 @@ export async function GET(request) {
   }
 
   try {
-    const response = await Sentry.withMonitor(
+    const response = await withProductionMonitor(
       "send-scheduled-updates",
       async () => runScheduledUpdates(),
       { schedule: { type: "interval", value: 10, unit: "minute" }, checkinMargin: 5, maxRuntime: 10 }

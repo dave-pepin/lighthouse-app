@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmailBatch, buildAgentEmail } from "@/lib/notify";
 import { findMarketImpactDigestRecipients, buildMarketImpactDigestMessage } from "@/lib/marketImpactDigest";
 import { runWithConcurrencyLimit } from "@/lib/concurrency";
+import { withProductionMonitor } from "@/lib/cronMonitor";
 
 // Vercel's default function timeout is too short for a large batch at
 // scale — this is the Pro plan's max for a standard serverless function.
@@ -37,7 +38,7 @@ export async function GET(request) {
   const origin = `https://${request.headers.get("host")}`;
 
   try {
-    const response = await Sentry.withMonitor(
+    const response = await withProductionMonitor(
       "send-market-impact-digest",
       async () => runMarketImpactDigest(origin),
       {
