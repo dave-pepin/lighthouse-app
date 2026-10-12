@@ -1,10 +1,11 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
-import { GripVertical } from "lucide-react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { GripVertical, Phone } from "lucide-react";
 import JourneyCard from "./JourneyCard";
-import { reorderJourneys } from "@/app/(dashboard)/bridge/actions";
+import { reorderJourneys, setWeeklyCallMade } from "@/app/(dashboard)/bridge/actions";
 import { reorderById } from "@/lib/reorder";
+import { calledThisWeek } from "@/lib/weeklyCall";
 
 // Last whitespace-separated word of the client's name — client_name is a
 // single free-text field (not split first/last), so this is a best-effort
@@ -53,6 +54,27 @@ export default function JourneyList({ journeys }) {
   const [draggedId, setDraggedId] = useState(null);
   const [dragOverId, setDragOverId] = useState(null);
   const draggedIdRef = useRef(null);
+  // "This week" depends on the agent's own clock/timezone, so the weekly-
+  // call checkboxes only resolve after mount — rendering them on the server
+  // could disagree with the browser and cause a hydration mismatch.
+  const [now, setNow] = useState(null);
+  useEffect(() => setNow(new Date()), []);
+
+  const updateJourney = (journeyId, fields) =>
+    setOrderedJourneys((prev) => prev.map((j) => (j.id === journeyId ? { ...j, ...fields } : j)));
+
+  // Optimistic tick, then fills in "Called by …" once the server has looked
+  // up the caller's name.
+  const handleWeeklyCallToggle = (journeyId, made) => {
+    updateJourney(journeyId, {
+      weekly_call_made_at: made ? new Date().toISOString() : null,
+      weekly_call_made_by_name: null,
+    });
+    startTransition(async () => {
+      const { weeklyCallMadeByName } = await setWeeklyCallMade(journeyId, made);
+      if (made) updateJourney(journeyId, { weekly_call_made_by_name: weeklyCallMadeByName });
+    });
+  };
 
   const handleDragStart = (e, journeyId) => {
     draggedIdRef.current = journeyId;
@@ -183,9 +205,91 @@ export default function JourneyList({ journeys }) {
             <div style={{ flex: 1, minWidth: 0 }}>
               <JourneyCard journey={journey} currentMilestoneLabel={journey.currentMilestoneLabel} />
             </div>
+            <WeeklyCallCheckbox
+              journey={journey}
+              checked={!!now && calledThisWeek(journey.weekly_call_made_at, now)}
+              onToggle={handleWeeklyCallToggle}
+            />
           </div>
         ))}
       </div>
     </div>
+  );
+}
+
+// Sits beside (not inside) the card — JourneyCard is itself a <button>, which
+// can't contain another interactive element. Once ticked it shows when the
+// call was logged, so the agent (or a teammate covering) can see at a glance.
+function WeeklyCallCheckbox({ journey, checked, onToggle }) {
+  const calledAt = checked ? new Date(journey.weekly_call_made_at) : null;
+  const calledDay = calledAt?.toLocaleDateString(undefined, { weekday: "short", month: "numeric", day: "numeric" });
+  const calledTime = calledAt?.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  const calledBy = calledAt ? journey.weekly_call_made_by_name : null;
+  // First name only on the narrow box; the full name is in the tooltip.
+  const calledByFirstName = calledBy?.trim().split(/\s+/)[0];
+
+  return (
+    <label
+      title={
+        calledAt
+          ? `Weekly update call made${calledBy ? ` by ${calledBy}` : ""} ${calledAt.toLocaleString(undefined, { dateStyle: "full", timeStyle: "short" })}`
+          : "Weekly update call not made yet this week (resets Mondays at 12 PM)"
+      }
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 4,
+        flexShrink: 0,
+        width: 76,
+        padding: "8px 4px",
+        borderRadius: 10,
+        border: "1px solid var(--lh-line)",
+        background: checked ? "var(--lh-teal-soft)" : "var(--lh-paper)",
+        color: checked ? "var(--lh-teal)" : "var(--lh-slate-light)",
+        fontSize: 10.5,
+        fontWeight: 600,
+        textAlign: "center",
+        lineHeight: 1.25,
+        cursor: "pointer",
+        userSelect: "none",
+      }}
+    >
+      <Phone size={14} />
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onToggle(journey.id, e.target.checked)}
+        aria-label={`Weekly update call made for ${journey.client_name}`}
+        className="lh-focus"
+        style={{ margin: 0, accentColor: "var(--lh-teal)", cursor: "pointer" }}
+      />
+      {calledAt ? (
+        <span>
+          Called
+          {calledByFirstName && (
+            <span
+              style={{
+                display: "block",
+                maxWidth: 68,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              by {calledByFirstName}
+            </span>
+          )}
+          <span className="lh-mono" style={{ display: "block", fontSize: 10, fontWeight: 500 }}>
+            {calledDay}
+            <br />
+            {calledTime}
+          </span>
+        </span>
+      ) : (
+        "Weekly call"
+      )}
+    </label>
   );
 }
