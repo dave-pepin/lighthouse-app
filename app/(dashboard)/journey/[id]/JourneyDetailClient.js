@@ -110,6 +110,13 @@ function formatDateTime(dateString) {
   });
 }
 
+// Formats a Date as the browser-local "YYYY-MM-DDTHH:mm" string a
+// datetime-local input expects (toISOString would give UTC instead).
+function toDatetimeLocalValue(date) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 function isImageFile(name) {
   return /\.(jpe?g|png|gif|webp|heic|bmp|svg)$/i.test(name || "");
 }
@@ -372,6 +379,14 @@ export default function JourneyDetailClient({
   const [schedulingOpen, setSchedulingOpen] = useState(false);
   const [scheduleValue, setScheduleValue] = useState("");
   const [scheduleError, setScheduleError] = useState("");
+  const PAST_SCHEDULE_MESSAGE = "That time has already passed — updates can only be scheduled for later than now.";
+  // scheduleValue is a timezone-less "datetime-local" string, which
+  // new Date() reads as the browser's own local time.
+  const isPastScheduleValue = (value) => {
+    const sendAt = new Date(value);
+    return Number.isNaN(sendAt.getTime()) || sendAt.getTime() <= Date.now();
+  };
+  const schedulePicksPast = !!scheduleValue && isPastScheduleValue(scheduleValue);
 
   const handleSaveDraft = () => {
     if (!latestUpdate) return;
@@ -574,6 +589,16 @@ export default function JourneyDetailClient({
     // an explicit UTC offset) is what makes it parse the same way
     // wherever the server happens to run, instead of being re-read as
     // UTC on a server that isn't in the visitor's timezone.
+    // Catch a past time here rather than letting scheduleUpdate throw for
+    // it — a thrown Server Action error reaches the browser with its
+    // message stripped in production (so the agent would never see why)
+    // and gets reported to Sentry as a crash. The server check stays as
+    // the backstop. Re-checked on click since the picked time can slip
+    // into the past while the picker sits open.
+    if (isPastScheduleValue(scheduleValue)) {
+      setScheduleError(PAST_SCHEDULE_MESSAGE);
+      return;
+    }
     const sendAtIso = new Date(scheduleValue).toISOString();
     startTransition(async () => {
       try {
@@ -2135,7 +2160,13 @@ export default function JourneyDetailClient({
                       <input
                         type="datetime-local"
                         value={scheduleValue}
-                        onChange={(e) => setScheduleValue(e.target.value)}
+                        // Greys out past dates in the browser's picker; typed
+                        // values are still checked below.
+                        min={toDatetimeLocalValue(new Date())}
+                        onChange={(e) => {
+                          setScheduleValue(e.target.value);
+                          setScheduleError(e.target.value && isPastScheduleValue(e.target.value) ? PAST_SCHEDULE_MESSAGE : "");
+                        }}
                         className="lh-focus"
                         style={{
                           border: "1px solid var(--lh-line)",
@@ -2150,7 +2181,7 @@ export default function JourneyDetailClient({
                       <div style={{ display: "flex", gap: 8 }}>
                         <button
                           onClick={handleSchedule}
-                          disabled={isPending || !scheduleValue}
+                          disabled={isPending || !scheduleValue || schedulePicksPast}
                           className="lh-focus"
                           style={{
                             background: "var(--lh-navy)",
@@ -2160,8 +2191,8 @@ export default function JourneyDetailClient({
                             padding: "7px 14px",
                             fontSize: 13,
                             fontWeight: 600,
-                            cursor: "pointer",
-                            opacity: !scheduleValue ? 0.6 : 1,
+                            cursor: !scheduleValue || schedulePicksPast ? "default" : "pointer",
+                            opacity: !scheduleValue || schedulePicksPast ? 0.6 : 1,
                           }}
                         >
                           Confirm schedule
