@@ -18,6 +18,7 @@ export default function BusinessTracker({ underContract, closed, year }) {
     { label: "Volume", pending: formatCompactCurrency(pending.volume), done: formatCompactCurrency(done.volume) },
     { label: "Avg. rate", pending: pct(pending.averagePercent), done: pct(done.averagePercent) },
     { label: "Referrals", pending: formatCompactCurrency(pending.referralFees), done: formatCompactCurrency(done.referralFees) },
+    { label: "To office", pending: formatCompactCurrency(pending.officeSplits), done: formatCompactCurrency(done.officeSplits) },
     { label: "Earned", pending: formatCompactCurrency(pending.net), done: formatCompactCurrency(done.net), strong: true },
   ];
 

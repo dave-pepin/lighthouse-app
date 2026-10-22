@@ -85,7 +85,7 @@ export async function setPropertyAddress(journeyId, address) {
 // journey_financials limits this to the Journey's own agency's agents.
 export async function setJourneyFinancials(
   journeyId,
-  { salePrice, commissionType, commissionPercent, commissionFlat, referralPercent }
+  { salePrice, commissionType, commissionPercent, commissionFlat, referralPercent, officeSplitPercent }
 ) {
   const supabase = await createClient();
 
@@ -95,6 +95,7 @@ export async function setJourneyFinancials(
   if (!isAmount(commissionFlat)) throw new Error("Enter a valid flat commission.");
   if (!isPercent(commissionPercent)) throw new Error("Commission percentage must be between 0 and 100.");
   if (!isPercent(referralPercent)) throw new Error("Referral percentage must be between 0 and 100.");
+  if (!isPercent(officeSplitPercent)) throw new Error("Office split must be between 0 and 100.");
 
   const { error } = await supabase.from("journey_financials").upsert({
     journey_id: journeyId,
@@ -103,6 +104,7 @@ export async function setJourneyFinancials(
     commission_percent: commissionPercent,
     commission_flat: commissionFlat,
     referral_percent: referralPercent,
+    office_split_percent: officeSplitPercent,
     updated_at: new Date().toISOString(),
   });
   if (error) throw new Error("Couldn't save the commission details.");

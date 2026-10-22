@@ -30,7 +30,15 @@ export default function CommissionPanel({ journeyId, financials }) {
   const [commissionPercent, setCommissionPercent] = useState(toDraft(financials?.commission_percent));
   const [commissionFlat, setCommissionFlat] = useState(toDraft(financials?.commission_flat));
   const [referralPercent, setReferralPercent] = useState(toDraft(financials?.referral_percent));
-  const [saved, setSaved] = useState({ salePrice, commissionType, commissionPercent, commissionFlat, referralPercent });
+  const [officeSplitPercent, setOfficeSplitPercent] = useState(toDraft(financials?.office_split_percent));
+  const [saved, setSaved] = useState({
+    salePrice,
+    commissionType,
+    commissionPercent,
+    commissionFlat,
+    referralPercent,
+    officeSplitPercent,
+  });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -39,6 +47,7 @@ export default function CommissionPanel({ journeyId, financials }) {
     commissionPercent: parseAmount(commissionPercent),
     commissionFlat: parseAmount(commissionFlat),
     referralPercent: parseAmount(referralPercent),
+    officeSplitPercent: parseAmount(officeSplitPercent),
   };
   const invalid = Object.values(parsed).some(Number.isNaN);
 
@@ -50,9 +59,10 @@ export default function CommissionPanel({ journeyId, financials }) {
         commission_percent: parsed.commissionPercent,
         commission_flat: parsed.commissionFlat,
         referral_percent: parsed.referralPercent,
+        office_split_percent: parsed.officeSplitPercent,
       });
 
-  const draft = { salePrice, commissionType, commissionPercent, commissionFlat, referralPercent };
+  const draft = { salePrice, commissionType, commissionPercent, commissionFlat, referralPercent, officeSplitPercent };
   const dirty = Object.keys(draft).some((k) => draft[k] !== saved[k]);
 
   const handleSave = async () => {
@@ -134,6 +144,20 @@ export default function CommissionPanel({ journeyId, financials }) {
             style={inputStyle}
           />
         </label>
+
+        <label>
+          <span style={labelStyle} title="The share of your commission that goes to your office, e.g. 40 if you keep 60%">
+            Office split %
+          </span>
+          <input
+            value={officeSplitPercent}
+            onChange={(e) => setOfficeSplitPercent(e.target.value)}
+            inputMode="decimal"
+            placeholder="0"
+            className="lh-focus"
+            style={inputStyle}
+          />
+        </label>
       </div>
 
       <div
@@ -150,6 +174,7 @@ export default function CommissionPanel({ journeyId, financials }) {
       >
         <Line label="Gross commission" value={result?.gross} />
         {result?.referralFee > 0 && <Line label="Referral fee" value={-result.referralFee} />}
+        {result?.officeSplit > 0 && <Line label="Office split" value={-result.officeSplit} />}
         <Line label="Your commission" value={result?.net} strong />
       </div>
 
