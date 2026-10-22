@@ -163,6 +163,28 @@ body {
   display: none;
 }
 
+/* Under-the-nav slot (SidebarPortal) is desktop-only — on mobile the
+   Sidebar is a drawer, so the Bridge shows its tracker inline instead. */
+.lh-sidebar-slot {
+  margin-top: 14px;
+}
+
+.lh-sidebar-slot:empty,
+.lh-bridge-tracker-inline {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .lh-sidebar-slot {
+    display: none;
+  }
+
+  .lh-bridge-tracker-inline {
+    display: block;
+    margin-top: 24px;
+  }
+}
+
 @media (max-width: 860px) {
   .lh-dashboard-topbar {
     display: none;

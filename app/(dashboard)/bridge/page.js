@@ -5,6 +5,7 @@ import { GuidanceStrip } from "@/components/JourneyCard";
 import JourneyList from "@/components/JourneyList";
 import BridgeTour from "@/components/BridgeTour";
 import BusinessTracker from "@/components/BusinessTracker";
+import SidebarPortal from "@/components/SidebarPortal";
 import { stagesForRole } from "@/components/CourseLine";
 import Pagination from "@/components/Pagination";
 import { getEffectiveAgency } from "@/lib/effectiveAgency";
@@ -210,7 +211,17 @@ export default async function BridgePage({ searchParams }) {
 
       <Pagination basePath="/bridge" currentPage={currentPage} pageSize={PAGE_SIZE} totalCount={totalCount || 0} />
 
-      {tracker && <BusinessTracker underContract={tracker.underContract} closed={tracker.closed} year={tracker.year} />}
+      {tracker && (
+        <>
+          {/* Desktop: in the Sidebar under the nav. Mobile: here, below the list. */}
+          <SidebarPortal>
+            <BusinessTracker underContract={tracker.underContract} closed={tracker.closed} year={tracker.year} />
+          </SidebarPortal>
+          <div className="lh-bridge-tracker-inline">
+            <BusinessTracker underContract={tracker.underContract} closed={tracker.closed} year={tracker.year} />
+          </div>
+        </>
+      )}
     </div>
   );
 }

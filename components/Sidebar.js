@@ -326,6 +326,10 @@ export default function Sidebar({
           Sign out
         </button>
 
+        {/* Filled by whichever page wants something under the nav —
+            currently the Bridge's Business Tracker (see SidebarPortal). */}
+        <div id="lh-sidebar-slot" className="lh-sidebar-slot" />
+
         {journeyId && (
           <div style={{ marginTop: 26, paddingLeft: 12, display: "flex", flexDirection: "column", gap: 8 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
