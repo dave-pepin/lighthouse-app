@@ -40,7 +40,10 @@ export default async function TeamPage() {
       const { data } = await admin.auth.admin.getUserById(agent.id);
       const bannedUntil = data?.user?.banned_until;
       const revoked = !!bannedUntil && new Date(bannedUntil).getTime() > Date.now();
-      return { ...agent, revoked };
+      // Never signed in = still hasn't used their invite link to set a
+      // password, so they can't log in yet (see resendAgentInvite).
+      const pending = !data?.user?.last_sign_in_at;
+      return { ...agent, revoked, pending };
     })
   );
 

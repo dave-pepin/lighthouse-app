@@ -3,12 +3,26 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { UserCircle2 } from "lucide-react";
-import { setAgentAccess } from "./actions";
+import { setAgentAccess, resendAgentInvite } from "./actions";
 
 function AgentRow({ agent, isSelf, onChanged }) {
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState("");
   const [confirming, setConfirming] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resent, setResent] = useState(false);
+
+  const handleResend = async () => {
+    setResending(true);
+    setError("");
+    try {
+      await resendAgentInvite(agent.id);
+      setResent(true);
+    } catch (err) {
+      setError(err.message || "Couldn't resend the invite.");
+    }
+    setResending(false);
+  };
 
   const handleToggle = async (revoke) => {
     setUpdating(true);
@@ -44,18 +58,46 @@ function AgentRow({ agent, isSelf, onChanged }) {
         </div>
         <div style={{ fontSize: 12.5, color: "var(--lh-slate)" }}>{agent.email || "No email on file"}</div>
         {error && <div style={{ fontSize: 11.5, color: "#B4472A", marginTop: 3 }}>{error}</div>}
+        {resent && (
+          <div style={{ fontSize: 11.5, color: "var(--lh-teal)", marginTop: 3 }}>
+            New invite sent to {agent.email}.
+          </div>
+        )}
       </div>
+
+      {agent.pending && !agent.revoked && !isSelf && (
+        <button
+          onClick={handleResend}
+          disabled={resending}
+          className="lh-focus"
+          title="They haven't set a password yet. Email them a fresh link."
+          style={{
+            background: "none",
+            border: "1px solid var(--lh-navy)",
+            borderRadius: 8,
+            padding: "6px 12px",
+            fontSize: 12.5,
+            color: "var(--lh-navy)",
+            cursor: resending ? "default" : "pointer",
+            opacity: resending ? 0.6 : 1,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {resending ? "Sending..." : resent ? "Send again" : "Resend invite"}
+        </button>
+      )}
 
       <span
         className="lh-mono"
         style={{
           fontSize: 11,
           fontWeight: 700,
-          color: agent.revoked ? "var(--lh-red)" : "var(--lh-teal)",
+          color: agent.revoked ? "var(--lh-red)" : agent.pending ? "var(--lh-gold)" : "var(--lh-teal)",
           whiteSpace: "nowrap",
         }}
+        title={agent.pending && !agent.revoked ? "Invited, but hasn't set a password or signed in yet" : undefined}
       >
-        {agent.revoked ? "REVOKED" : "ACTIVE"}
+        {agent.revoked ? "REVOKED" : agent.pending ? "INVITED" : "ACTIVE"}
       </span>
 
       {isSelf ? (
