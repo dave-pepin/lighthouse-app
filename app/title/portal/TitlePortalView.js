@@ -1,5 +1,6 @@
 import { Anchor, Eye, FileText } from "lucide-react";
 import ClientSignOutButton from "@/components/ClientSignOutButton";
+import ClosePreviewLink from "@/components/ClosePreviewLink";
 import TitleDocumentUpload from "./TitleDocumentUpload";
 
 // The title company's whole portal — documents only, no milestones,
@@ -55,13 +56,10 @@ export default function TitlePortalView({
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           {previewMode ? (
-            <a
+            <ClosePreviewLink
               href={closePreviewHref}
-              className="lh-focus"
               style={{ fontSize: 12.5, color: "var(--lh-slate)", textDecoration: "underline" }}
-            >
-              Close preview
-            </a>
+            />
           ) : (
             <>
               {hasMultipleJourneys && (

@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { GripVertical, Phone } from "lucide-react";
 import JourneyCard from "./JourneyCard";
 import { reorderJourneys, setWeeklyCallMade } from "@/app/(dashboard)/bridge/actions";
 import { reorderById } from "@/lib/reorder";
+import { usePointerReorder } from "@/lib/usePointerReorder";
 import { calledThisWeek } from "@/lib/weeklyCall";
 
 // Last whitespace-separated word of the client's name — client_name is a
@@ -41,19 +42,16 @@ function sortedJourneys(journeys, sortMode) {
   return journeys;
 }
 
-// Drag-and-drop reordering for the Bridge's Journey list — same pattern
-// as the milestone list (JourneyDetailClient.js) and property photos
-// (Sidebar.js): local optimistic state + a ref mirroring the dragged id
-// for synchronous dragover reads, persisted via reorderJourneys on drop.
+// Drag-to-reorder for the Bridge's Journey list — same pattern as the
+// milestone list (JourneyDetailClient.js): pointer-based via
+// usePointerReorder (so the grip works with a finger on a phone), local
+// optimistic state, persisted via reorderJourneys on release.
 // JourneyCard itself stays a plain display component (also used
 // unwrapped, with no reordering, on the Harbor page).
 export default function JourneyList({ journeys }) {
   const [orderedJourneys, setOrderedJourneys] = useState(journeys);
   const [sortMode, setSortMode] = useState("manual");
   const [isPending, startTransition] = useTransition();
-  const [draggedId, setDraggedId] = useState(null);
-  const [dragOverId, setDragOverId] = useState(null);
-  const draggedIdRef = useRef(null);
   // "This week" depends on the agent's own clock/timezone, so the weekly-
   // call checkboxes only resolve after mount — rendering them on the server
   // could disagree with the browser and cause a hydration mismatch.
@@ -76,41 +74,21 @@ export default function JourneyList({ journeys }) {
     });
   };
 
-  const handleDragStart = (e, journeyId) => {
-    draggedIdRef.current = journeyId;
-    setDraggedId(journeyId);
-    e.dataTransfer.effectAllowed = "move";
-  };
-
-  const handleDragOver = (e, journeyId) => {
-    e.preventDefault();
-    if (!draggedIdRef.current || draggedIdRef.current === journeyId) return;
-    setDragOverId(journeyId);
-  };
-
-  const handleDrop = (e, journeyId) => {
-    e.preventDefault();
-    const fromId = draggedIdRef.current;
-    draggedIdRef.current = null;
-    setDraggedId(null);
-    setDragOverId(null);
-    if (!fromId || fromId === journeyId) return;
-
-    const reordered = reorderById(orderedJourneys, fromId, journeyId);
-    if (reordered === orderedJourneys) return;
-
-    setOrderedJourneys(reordered);
-    startTransition(() => reorderJourneys(reordered.map((j) => j.id)));
-  };
-
-  const handleDragEnd = () => {
-    draggedIdRef.current = null;
-    setDraggedId(null);
-    setDragOverId(null);
-  };
-
   const displayedJourneys = sortedJourneys(orderedJourneys, sortMode);
   const manual = sortMode === "manual";
+
+  const { draggedId, overId: dragOverId, getRowProps, getHandleProps } = usePointerReorder({
+    enabled: manual,
+    onReorder: (fromKey, toKey) => {
+      const fromId = orderedJourneys.find((j) => String(j.id) === fromKey)?.id;
+      const toId = orderedJourneys.find((j) => String(j.id) === toKey)?.id;
+      const reordered = reorderById(orderedJourneys, fromId, toId);
+      if (reordered === orderedJourneys) return;
+
+      setOrderedJourneys(reordered);
+      startTransition(() => reorderJourneys(reordered.map((j) => j.id)));
+    },
+  });
 
   // Adopts whatever's currently displayed under a computed sort (Closing
   // Date/Last Name/Date Entered) as the new persisted Manual order — lets
@@ -172,30 +150,30 @@ export default function JourneyList({ journeys }) {
         {displayedJourneys.map((journey) => (
           <div
             key={journey.id}
-            draggable={manual}
-            onDragStart={manual ? (e) => handleDragStart(e, journey.id) : undefined}
-            onDragOver={manual ? (e) => handleDragOver(e, journey.id) : undefined}
-            onDrop={manual ? (e) => handleDrop(e, journey.id) : undefined}
-            onDragEnd={manual ? handleDragEnd : undefined}
+            {...getRowProps(journey.id)}
             style={{
               display: "flex",
               alignItems: "stretch",
               gap: 6,
-              opacity: draggedId === journey.id ? 0.4 : 1,
-              outline: manual && dragOverId === journey.id && draggedId !== journey.id ? "2px solid var(--lh-teal)" : "none",
+              opacity: draggedId === String(journey.id) ? 0.4 : 1,
+              outline: dragOverId === String(journey.id) ? "2px solid var(--lh-teal)" : "none",
               outlineOffset: 2,
               borderRadius: 14,
             }}
           >
             <div
+              {...getHandleProps(journey.id)}
               title={manual ? "Drag to reorder" : undefined}
+              className="lh-drag-handle"
               style={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 flexShrink: 0,
                 width: 20,
-                cursor: manual && !isPending ? "grab" : "default",
+                boxSizing: "content-box",
+                cursor: manual ? (draggedId ? "grabbing" : "grab") : "default",
+                touchAction: "none",
                 color: "var(--lh-slate-light)",
                 visibility: manual ? "visible" : "hidden",
               }}

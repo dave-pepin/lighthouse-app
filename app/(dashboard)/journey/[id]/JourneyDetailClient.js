@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   FileText,
   CheckCircle2,
@@ -25,6 +26,7 @@ import {
 } from "lucide-react";
 import CourseLine, { stagesForRole, stageLabel } from "@/components/CourseLine";
 import { reorderById } from "@/lib/reorder";
+import { usePointerReorder } from "@/lib/usePointerReorder";
 import { validateFile, sanitizeFilenameForStorage } from "@/lib/uploadValidation";
 
 const MILESTONE_VIDEO_LIMITS = {
@@ -278,15 +280,25 @@ export default function JourneyDetailClient({
   // has no effect on sort_order (or on what the client portal shows,
   // since that's a completely separate query or the same agent).
   const [sortMode, setSortMode] = useState("manual");
-  const [draggedMilestoneId, setDraggedMilestoneId] = useState(null);
-  const [dragOverMilestoneId, setDragOverMilestoneId] = useState(null);
-  // Mirrors draggedMilestoneId synchronously so dragover/drop can read it
-  // immediately, without waiting on a React re-render mid-drag.
-  const draggedMilestoneIdRef = useRef(null);
-  // Native HTML5 drag-and-drop only lets the draggable element itself
-  // start a drag, so this gates dragstart to mousedowns that began on the
-  // grip handle rather than anywhere else in the row (date input, etc.).
-  const dragHandleActiveRef = useRef(false);
+  // Pointer-based (not native HTML5 drag-and-drop) so the grip handle works
+  // with a finger on a phone, not just a mouse — see usePointerReorder.
+  const {
+    draggedId: draggedMilestoneId,
+    overId: dragOverMilestoneId,
+    getRowProps: getMilestoneRowProps,
+    getHandleProps: getMilestoneHandleProps,
+  } = usePointerReorder({
+    enabled: sortMode === "manual",
+    onReorder: (fromKey, toKey) => {
+      const fromId = orderedMilestones.find((row) => String(row.id) === fromKey)?.id;
+      const toId = orderedMilestones.find((row) => String(row.id) === toKey)?.id;
+      const reordered = reorderById(orderedMilestones, fromId, toId);
+      if (reordered === orderedMilestones) return;
+
+      setOrderedMilestones(reordered);
+      startTransition(() => reorderMilestones(journey.id, reordered.map((row) => row.id)));
+    },
+  });
 
   useEffect(() => {
     setOrderedMilestones(milestones);
@@ -666,54 +678,6 @@ export default function JourneyDetailClient({
     startTransition(() => deleteMilestone(m.id, journey.id));
   };
 
-  const handleMilestoneDragStart = (e, m) => {
-    if (!dragHandleActiveRef.current) {
-      e.preventDefault();
-      return;
-    }
-    e.stopPropagation();
-    draggedMilestoneIdRef.current = m.id;
-    setDraggedMilestoneId(m.id);
-    e.dataTransfer.effectAllowed = "move";
-  };
-
-  const handleMilestoneDragOver = (e, m) => {
-    // Always preventDefault, even before React has re-rendered with the
-    // dragged id (draggedMilestoneIdRef is set synchronously in
-    // dragstart, ahead of the state) — dragover fires continuously while
-    // hovering, and the browser only allows a drop if the *most recent*
-    // dragover on the current target called preventDefault. Gating this
-    // on state instead let a fast drag miss every dragover before the
-    // re-render landed, so the drop was silently rejected.
-    e.preventDefault();
-    e.stopPropagation();
-    if (!draggedMilestoneIdRef.current || draggedMilestoneIdRef.current === m.id) return;
-    setDragOverMilestoneId(m.id);
-  };
-
-  const handleMilestoneDrop = (e, m) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const fromId = draggedMilestoneIdRef.current;
-    draggedMilestoneIdRef.current = null;
-    setDraggedMilestoneId(null);
-    setDragOverMilestoneId(null);
-    if (!fromId || fromId === m.id) return;
-
-    const reordered = reorderById(orderedMilestones, fromId, m.id);
-    if (reordered === orderedMilestones) return;
-
-    setOrderedMilestones(reordered);
-    startTransition(() => reorderMilestones(journey.id, reordered.map((row) => row.id)));
-  };
-
-  const handleMilestoneDragEnd = () => {
-    dragHandleActiveRef.current = false;
-    draggedMilestoneIdRef.current = null;
-    setDraggedMilestoneId(null);
-    setDragOverMilestoneId(null);
-  };
-
   const handleOpenVideoPicker = (e, milestoneId) => {
     e.stopPropagation();
     setVideoPickerOpenId(milestoneId);
@@ -979,24 +943,24 @@ export default function JourneyDetailClient({
           below to bring it back.
         </div>
       )}
-      <button
-        onClick={() => router.back()}
+      {/* A real link, not router.back(): the previous history entry isn't
+          always the Bridge (fresh tab, arriving from the portal preview). */}
+      <Link
+        href="/bridge"
         className="lh-focus"
         style={{
           display: "flex",
           alignItems: "center",
           gap: 6,
-          background: "none",
-          border: "none",
-          cursor: "pointer",
+          width: "fit-content",
           color: "var(--lh-slate)",
           fontSize: 13,
-          padding: 0,
+          textDecoration: "none",
           marginBottom: 22,
         }}
       >
         <ChevronLeft size={15} /> Back to the Bridge
-      </button>
+      </Link>
 
       <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "flex-start", flexWrap: "wrap", gap: 10, marginBottom: 8 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -1341,8 +1305,6 @@ export default function JourneyDetailClient({
 
       <a
         href={`/journey-preview/${journey.id}`}
-        target="_blank"
-        rel="noopener noreferrer"
         className="lh-focus"
         style={{
           display: "inline-flex",
@@ -1644,8 +1606,6 @@ export default function JourneyDetailClient({
 
                   <a
                     href={`/title-preview/${journey.id}?contact=${contact.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
                     className="lh-focus"
                     style={{
                       display: "inline-flex",
@@ -2319,11 +2279,7 @@ export default function JourneyDetailClient({
                 return (
                   <div
                     key={m.id}
-                    draggable={sortMode === "manual"}
-                    onDragStart={sortMode === "manual" ? (e) => handleMilestoneDragStart(e, m) : undefined}
-                    onDragOver={sortMode === "manual" ? (e) => handleMilestoneDragOver(e, m) : undefined}
-                    onDrop={sortMode === "manual" ? (e) => handleMilestoneDrop(e, m) : undefined}
-                    onDragEnd={sortMode === "manual" ? handleMilestoneDragEnd : undefined}
+                    {...getMilestoneRowProps(m.id)}
                     style={{
                       background: isNext ? "var(--lh-teal-soft)" : "transparent",
                       borderRadius: 8,
@@ -2331,9 +2287,9 @@ export default function JourneyDetailClient({
                       marginRight: isNext ? -8 : 0,
                       paddingLeft: isNext ? 8 : 0,
                       paddingRight: isNext ? 8 : 0,
-                      opacity: draggedMilestoneId === m.id ? 0.4 : 1,
+                      opacity: draggedMilestoneId === String(m.id) ? 0.4 : 1,
                       borderTop:
-                        dragOverMilestoneId === m.id && draggedMilestoneId !== m.id
+                        dragOverMilestoneId === String(m.id)
                           ? "2px solid var(--lh-teal)"
                           : "2px solid transparent",
                     }}
@@ -2482,19 +2438,16 @@ export default function JourneyDetailClient({
                         <Trash2 size={13} color="var(--lh-slate-light)" />
                       </button>
                       <div
-                        onMouseDown={() => {
-                          dragHandleActiveRef.current = true;
-                        }}
-                        onMouseUp={() => {
-                          dragHandleActiveRef.current = false;
-                        }}
+                        {...getMilestoneHandleProps(m.id)}
                         onClick={(e) => e.stopPropagation()}
                         title={sortMode === "manual" ? "Drag to reorder" : undefined}
+                        className="lh-drag-handle"
                         style={{
                           display: "flex",
                           flexShrink: 0,
                           width: 14,
-                          cursor: sortMode === "manual" ? "grab" : "default",
+                          boxSizing: "content-box",
+                          cursor: sortMode === "manual" ? (draggedMilestoneId ? "grabbing" : "grab") : "default",
                           touchAction: "none",
                           visibility: sortMode === "manual" ? "visible" : "hidden",
                         }}

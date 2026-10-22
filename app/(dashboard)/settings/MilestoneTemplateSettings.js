@@ -1,10 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { GripVertical, Plus } from "lucide-react";
 import { setMilestoneEnabled, reorderMilestoneStage } from "./actions";
 import { flattenTemplateForRole, sortLabelsByOverride, isLabelEnabled } from "@/lib/milestoneTemplates";
 import { reorderById } from "@/lib/reorder";
+import { usePointerReorder } from "@/lib/usePointerReorder";
 
 const fieldGroupStyle = {
   background: "var(--lh-paper)",
@@ -71,15 +72,6 @@ export default function MilestoneTemplateSettings({ templateSettings }) {
   }));
   const [rowError, setRowError] = useState("");
   const [newLabelByStage, setNewLabelByStage] = useState({});
-  const [draggedLabel, setDraggedLabel] = useState(null);
-  const [dragOverLabel, setDragOverLabel] = useState(null);
-  // Mirrors draggedLabel synchronously so dragover/drop can read it
-  // immediately, without waiting on a React re-render mid-drag — same
-  // reasoning as JourneyDetailClient's draggedMilestoneIdRef.
-  const draggedLabelRef = useRef(null);
-  // Gates dragstart to mousedowns that began on the grip handle, not
-  // anywhere else in the row (the checkbox, the label text).
-  const dragHandleActiveRef = useRef(false);
 
   const rows = rowsByRole[activeRole];
 
@@ -99,60 +91,33 @@ export default function MilestoneTemplateSettings({ templateSettings }) {
     });
   };
 
-  const handleDragStart = (e, row) => {
-    if (!dragHandleActiveRef.current) {
-      e.preventDefault();
-      return;
-    }
-    e.stopPropagation();
-    draggedLabelRef.current = row.label;
-    setDraggedLabel(row.label);
-    e.dataTransfer.effectAllowed = "move";
-  };
+  // Pointer-based so the grip works with a finger on a phone — see
+  // usePointerReorder. Rows are keyed by label (unique within a role), and
+  // a drop only counts within the dragged row's own stage: this reorders
+  // milestones within a stage, not across them.
+  const sameStage = (fromLabel, toLabel) =>
+    rows.find((r) => r.label === fromLabel)?.stage === rows.find((r) => r.label === toLabel)?.stage;
 
-  const handleDragOver = (e, row) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!draggedLabelRef.current || draggedLabelRef.current === row.label) return;
-    // Only allow dropping within the same stage as the dragged row —
-    // this feature reorders milestones within a stage, not across them.
-    const draggedRow = rows.find((r) => r.label === draggedLabelRef.current);
-    if (!draggedRow || draggedRow.stage !== row.stage) return;
-    setDragOverLabel(row.label);
-  };
+  const { draggedId: draggedLabel, overId: dragOverLabel, getRowProps, getHandleProps } = usePointerReorder({
+    canDrop: sameStage,
+    onReorder: (fromLabel, toLabel) => {
+      if (!sameStage(fromLabel, toLabel)) return;
+      const stage = rows.find((r) => r.label === toLabel).stage;
 
-  const handleDrop = (e, row) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const fromLabel = draggedLabelRef.current;
-    draggedLabelRef.current = null;
-    setDraggedLabel(null);
-    setDragOverLabel(null);
-    if (!fromLabel || fromLabel === row.label) return;
+      const idRows = rows.map((r) => ({ ...r, id: r.label }));
+      const reordered = reorderById(idRows, fromLabel, toLabel);
+      if (reordered === idRows) return;
 
-    const draggedRow = rows.find((r) => r.label === fromLabel);
-    if (!draggedRow || draggedRow.stage !== row.stage) return;
+      const previousRows = rows;
+      setRowsByRole((cur) => ({ ...cur, [activeRole]: reordered }));
 
-    const idRows = rows.map((r) => ({ ...r, id: r.label }));
-    const reordered = reorderById(idRows, fromLabel, row.label);
-    if (reordered === idRows) return;
-
-    const previousRows = rows;
-    setRowsByRole((cur) => ({ ...cur, [activeRole]: reordered }));
-
-    const stageLabelsInOrder = reordered.filter((r) => r.stage === row.stage).map((r) => r.label);
-    reorderMilestoneStage(activeRole, row.stage, stageLabelsInOrder).catch((err) => {
-      setRowsByRole((cur) => ({ ...cur, [activeRole]: previousRows }));
-      setRowError(err.message || "Couldn't save that order.");
-    });
-  };
-
-  const handleDragEnd = () => {
-    dragHandleActiveRef.current = false;
-    draggedLabelRef.current = null;
-    setDraggedLabel(null);
-    setDragOverLabel(null);
-  };
+      const stageLabelsInOrder = reordered.filter((r) => r.stage === stage).map((r) => r.label);
+      reorderMilestoneStage(activeRole, stage, stageLabelsInOrder).catch((err) => {
+        setRowsByRole((cur) => ({ ...cur, [activeRole]: previousRows }));
+        setRowError(err.message || "Couldn't save that order.");
+      });
+    },
+  });
 
   // Adds a brand-new milestone (not part of the stock template) to the
   // end of one stage's list. Reuses reorderMilestoneStage rather than a
@@ -238,11 +203,7 @@ export default function MilestoneTemplateSettings({ templateSettings }) {
                 </div>
               )}
               <div
-                draggable
-                onDragStart={(e) => handleDragStart(e, row)}
-                onDragOver={(e) => handleDragOver(e, row)}
-                onDrop={(e) => handleDrop(e, row)}
-                onDragEnd={handleDragEnd}
+                {...getRowProps(row.label)}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -250,7 +211,7 @@ export default function MilestoneTemplateSettings({ templateSettings }) {
                   padding: "5px 0",
                   opacity: draggedLabel === row.label ? 0.4 : 1,
                   borderTop:
-                    dragOverLabel === row.label && draggedLabel !== row.label
+                    dragOverLabel === row.label
                       ? "2px solid var(--lh-teal)"
                       : "2px solid transparent",
                 }}
@@ -276,14 +237,17 @@ export default function MilestoneTemplateSettings({ templateSettings }) {
                   )}
                 </span>
                 <div
-                  onMouseDown={() => {
-                    dragHandleActiveRef.current = true;
-                  }}
-                  onMouseUp={() => {
-                    dragHandleActiveRef.current = false;
-                  }}
+                  {...getHandleProps(row.label)}
                   title="Drag to reorder"
-                  style={{ display: "flex", flexShrink: 0, width: 14, cursor: "grab", touchAction: "none" }}
+                  className="lh-drag-handle"
+                  style={{
+                    display: "flex",
+                    flexShrink: 0,
+                    width: 14,
+                    boxSizing: "content-box",
+                    cursor: draggedLabel ? "grabbing" : "grab",
+                    touchAction: "none",
+                  }}
                 >
                   <GripVertical size={14} color="var(--lh-slate-light)" />
                 </div>

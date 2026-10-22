@@ -2,6 +2,7 @@ import { Anchor, ChevronDown, Eye, Share2 } from "lucide-react";
 import CourseLine from "@/components/CourseLine";
 import StageTag from "@/components/StageTag";
 import ClientSignOutButton from "@/components/ClientSignOutButton";
+import ClosePreviewLink from "@/components/ClosePreviewLink";
 import AgentBrandingFooter, { hasAgentBranding } from "@/components/AgentBrandingFooter";
 import ClientMilestoneList from "./ClientMilestoneList";
 import HarborSection from "./HarborSection";
@@ -246,13 +247,10 @@ export default function PortalView({
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           {previewMode ? (
-            <a
+            <ClosePreviewLink
               href={closePreviewHref}
-              className="lh-focus"
               style={{ fontSize: 12.5, color: "var(--lh-slate)", textDecoration: "underline" }}
-            >
-              Close preview
-            </a>
+            />
           ) : (
             <>
               {hasMultipleJourneys && (

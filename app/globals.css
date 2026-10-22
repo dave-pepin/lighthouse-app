@@ -53,6 +53,25 @@ body {
   border-radius: 6px;
 }
 
+/* Grip handle for drag-to-reorder: the icon is only 14px, so pad the hit
+   area out (with matching negative margin, so layout doesn't shift) —
+   much more so on touch screens, where a 14px target is nearly
+   impossible to land a finger on. */
+.lh-drag-handle {
+  padding: 6px;
+  margin: -6px;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+@media (pointer: coarse) {
+  .lh-drag-handle {
+    padding: 13px 13px 13px 6px;
+    margin: -13px -13px -13px -6px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .lh-anim {
     transition: none !important;
