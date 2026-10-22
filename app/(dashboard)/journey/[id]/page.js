@@ -37,6 +37,7 @@ export default async function JourneyDetailPage({ params }) {
     { data: videoLibrary },
     { data: documentRequests },
     { data: titleCompanyContacts },
+    { data: financials },
   ] = await Promise.all([
       supabase
         .from("milestones")
@@ -71,6 +72,11 @@ export default async function JourneyDetailPage({ params }) {
         .select("id, company_name, contact_name, email, phone, user_id, invited_at, activated_at")
         .eq("journey_id", id)
         .order("created_at", { ascending: true }),
+      // Commission numbers are the agency's own business — RLS already
+      // hides them from delegates, so don't even ask while covering.
+      effectiveAgency.isDelegate
+        ? Promise.resolve({ data: null })
+        : supabase.from("journey_financials").select("*").eq("journey_id", id).maybeSingle(),
     ]);
 
   const latestUpdate = weeklyUpdates?.[0] || null;
@@ -154,6 +160,8 @@ export default async function JourneyDetailPage({ params }) {
       titleCompanyContacts={titleCompanyContacts || []}
       titleCompanyAccess={titleCompanyAccess}
       canSendMessages={!effectiveAgency.isDelegate}
+      showFinancials={!effectiveAgency.isDelegate}
+      financials={financials}
     />
   );
 }

@@ -80,6 +80,37 @@ export async function setPropertyAddress(journeyId, address) {
   revalidatePath("/bridge");
 }
 
+// Sale price + commission terms for the Business Tracker. Values arrive
+// already parsed (numbers or null) from CommissionPanel. RLS on
+// journey_financials limits this to the Journey's own agency's agents.
+export async function setJourneyFinancials(
+  journeyId,
+  { salePrice, commissionType, commissionPercent, commissionFlat, referralPercent }
+) {
+  const supabase = await createClient();
+
+  const isAmount = (v) => v == null || (Number.isFinite(v) && v >= 0);
+  const isPercent = (v) => v == null || (Number.isFinite(v) && v >= 0 && v <= 100);
+  if (!isAmount(salePrice)) throw new Error("Enter a valid price.");
+  if (!isAmount(commissionFlat)) throw new Error("Enter a valid flat commission.");
+  if (!isPercent(commissionPercent)) throw new Error("Commission percentage must be between 0 and 100.");
+  if (!isPercent(referralPercent)) throw new Error("Referral percentage must be between 0 and 100.");
+
+  const { error } = await supabase.from("journey_financials").upsert({
+    journey_id: journeyId,
+    sale_price: salePrice,
+    commission_type: commissionType === "flat" ? "flat" : "percent",
+    commission_percent: commissionPercent,
+    commission_flat: commissionFlat,
+    referral_percent: referralPercent,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) throw new Error("Couldn't save the commission details.");
+
+  revalidatePath(`/journey/${journeyId}`);
+  revalidatePath("/bridge");
+}
+
 export async function setClosedDate(journeyId, date) {
   const supabase = await createClient();
   await supabase

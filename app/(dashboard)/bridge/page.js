@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { GuidanceStrip } from "@/components/JourneyCard";
 import JourneyList from "@/components/JourneyList";
 import BridgeTour from "@/components/BridgeTour";
+import BusinessTracker from "@/components/BusinessTracker";
+import { stagesForRole } from "@/components/CourseLine";
 import Pagination from "@/components/Pagination";
 import { getEffectiveAgency } from "@/lib/effectiveAgency";
 
@@ -75,6 +77,55 @@ export default async function BridgePage({ searchParams }) {
       if (m.due_date && m.label?.trim().toLowerCase() === "closing" && !(m.journey_id in closingDateByJourneyId)) {
         closingDateByJourneyId[m.journey_id] = m.due_date;
       }
+    }
+  }
+
+  // Business Tracker — skipped while covering another agency (its income
+  // isn't the delegate's business; RLS on journey_financials agrees).
+  // Separate from the paged `journeys` fetch so the totals always cover
+  // every Journey, and closed ones aren't on the Bridge at all.
+  let tracker = null;
+  if (!effectiveAgency.isDelegate) {
+    const trackerYear = new Date().getFullYear();
+    const trackerColumns = "id, client_name, property_address, role, stage, journey_financials(*)";
+    const [{ data: activeForTracker, error: activeError }, { data: closedForTracker, error: closedError }] =
+      await Promise.all([
+        supabase
+          .from("journeys")
+          .select(trackerColumns)
+          .eq("agency_id", effectiveAgency.agencyId)
+          .neq("stage", "Harbor")
+          .eq("cancelled", false)
+          .order("bridge_sort_order", { ascending: true, nullsFirst: false }),
+        // "Closed" = reached Harbor with a closing date this calendar year.
+        supabase
+          .from("journeys")
+          .select(trackerColumns)
+          .eq("agency_id", effectiveAgency.agencyId)
+          .eq("stage", "Harbor")
+          .eq("cancelled", false)
+          .gte("closed_at", `${trackerYear}-01-01`)
+          .lte("closed_at", `${trackerYear}-12-31`),
+      ]);
+
+    // journey_financials is one-to-one (journey_id is its primary key), so
+    // PostgREST embeds it as an object — normalize in case it's ever a list.
+    const withFinancials = (j) => ({
+      ...j,
+      financials: Array.isArray(j.journey_financials) ? j.journey_financials[0] || null : j.journey_financials,
+    });
+
+    if (!activeError && !closedError) {
+      tracker = {
+        year: trackerYear,
+        // Under contract = reached its pipeline's "Under Contract" stage
+        // (or anything after it) but not yet Harbor.
+        underContract: (activeForTracker || []).map(withFinancials).filter((j) => {
+          const stages = stagesForRole(j.role);
+          return stages.indexOf(j.stage) >= stages.indexOf("Under Contract");
+        }),
+        closed: (closedForTracker || []).map(withFinancials),
+      };
     }
   }
 
@@ -158,6 +209,8 @@ export default async function BridgePage({ searchParams }) {
       )}
 
       <Pagination basePath="/bridge" currentPage={currentPage} pageSize={PAGE_SIZE} totalCount={totalCount || 0} />
+
+      {tracker && <BusinessTracker underContract={tracker.underContract} closed={tracker.closed} year={tracker.year} />}
     </div>
   );
 }

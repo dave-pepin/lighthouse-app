@@ -25,6 +25,7 @@ import {
   Archive,
 } from "lucide-react";
 import CourseLine, { stagesForRole, stageLabel } from "@/components/CourseLine";
+import CommissionPanel from "@/components/CommissionPanel";
 import { reorderById } from "@/lib/reorder";
 import { usePointerReorder } from "@/lib/usePointerReorder";
 import { validateFile, sanitizeFilenameForStorage } from "@/lib/uploadValidation";
@@ -255,6 +256,8 @@ export default function JourneyDetailClient({
   titleCompanyContacts = [],
   titleCompanyAccess = {},
   canSendMessages = true,
+  showFinancials = false,
+  financials = null,
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -1745,12 +1748,14 @@ export default function JourneyDetailClient({
         </div>
       )}
 
-      {/* Property address */}
+      {/* Property address, with the commission panel to its right (wraps
+          below on narrow screens) */}
       <div
         style={{
           display: "flex",
-          alignItems: "center",
-          gap: 8,
+          alignItems: "flex-start",
+          flexWrap: "wrap",
+          gap: "14px 24px",
           background: "var(--lh-paper)",
           border: "1px solid var(--lh-line)",
           borderRadius: 14,
@@ -1758,69 +1763,72 @@ export default function JourneyDetailClient({
           marginBottom: 20,
         }}
       >
-        {editingAddress ? (
-          <>
-            <input
-              autoFocus
-              value={addressDraft}
-              onChange={(e) => setAddressDraft(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSaveAddress()}
-              placeholder="123 Main St, Springfield"
-              className="lh-focus lh-display"
-              style={{
-                flex: 1,
-                minWidth: 0,
-                fontSize: 15.5,
-                fontWeight: 600,
-                border: "1px solid var(--lh-line)",
-                borderRadius: 8,
-                padding: "6px 10px",
-                fontFamily: "inherit",
-                color: "var(--lh-navy)",
-              }}
-            />
-            <button
-              onClick={handleSaveAddress}
-              disabled={isPending}
-              className="lh-focus"
-              title="Save"
-              style={{ background: "none", border: "none", padding: 4, cursor: "pointer", display: "flex" }}
-            >
-              <Check size={16} color="var(--lh-teal)" />
-            </button>
-            <button
-              onClick={handleCancelAddress}
-              className="lh-focus"
-              title="Cancel"
-              style={{ background: "none", border: "none", padding: 4, cursor: "pointer", display: "flex" }}
-            >
-              <X size={16} color="var(--lh-slate)" />
-            </button>
-          </>
-        ) : (
-          <>
-            <span
-              className="lh-display"
-              style={{
-                fontSize: 15.5,
-                fontWeight: 600,
-                color: journey.property_address ? "var(--lh-navy)" : "var(--lh-slate-light)",
-                minWidth: 0,
-                overflowWrap: "break-word",
-              }}
-            >
-              {journey.property_address || "Add the property address"}
-            </span>
-            <button
-              onClick={() => setEditingAddress(true)}
-              className="lh-focus"
-              title="Edit address"
-              style={{ background: "none", border: "none", padding: 4, cursor: "pointer", display: "flex", flexShrink: 0 }}
-            >
-              <Pencil size={14} color="var(--lh-slate)" />
-            </button>
-          </>
-        )}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flex: "1 1 240px", minWidth: 0 }}>
+          {editingAddress ? (
+            <>
+              <input
+                autoFocus
+                value={addressDraft}
+                onChange={(e) => setAddressDraft(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSaveAddress()}
+                placeholder="123 Main St, Springfield"
+                className="lh-focus lh-display"
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  fontSize: 15.5,
+                  fontWeight: 600,
+                  border: "1px solid var(--lh-line)",
+                  borderRadius: 8,
+                  padding: "6px 10px",
+                  fontFamily: "inherit",
+                  color: "var(--lh-navy)",
+                }}
+              />
+              <button
+                onClick={handleSaveAddress}
+                disabled={isPending}
+                className="lh-focus"
+                title="Save"
+                style={{ background: "none", border: "none", padding: 4, cursor: "pointer", display: "flex" }}
+              >
+                <Check size={16} color="var(--lh-teal)" />
+              </button>
+              <button
+                onClick={handleCancelAddress}
+                className="lh-focus"
+                title="Cancel"
+                style={{ background: "none", border: "none", padding: 4, cursor: "pointer", display: "flex" }}
+              >
+                <X size={16} color="var(--lh-slate)" />
+              </button>
+            </>
+          ) : (
+            <>
+              <span
+                className="lh-display"
+                style={{
+                  fontSize: 15.5,
+                  fontWeight: 600,
+                  color: journey.property_address ? "var(--lh-navy)" : "var(--lh-slate-light)",
+                  minWidth: 0,
+                  overflowWrap: "break-word",
+                }}
+              >
+                {journey.property_address || "Add the property address"}
+              </span>
+              <button
+                onClick={() => setEditingAddress(true)}
+                className="lh-focus"
+                title="Edit address"
+                style={{ background: "none", border: "none", padding: 4, cursor: "pointer", display: "flex", flexShrink: 0 }}
+              >
+                <Pencil size={14} color="var(--lh-slate)" />
+              </button>
+            </>
+          )}
+        </div>
+        {showFinancials && <CommissionPanel journeyId={journey.id} financials={financials} />}
       </div>
 
       {journey.stage === "Harbor" && (
