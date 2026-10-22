@@ -95,6 +95,14 @@ export default function LoginPage() {
           <div style={{ fontSize: 12.5, color: "#B4472A" }}>{error}</div>
         )}
 
+        <Link
+          href="/login/forgot"
+          className="lh-focus"
+          style={{ fontSize: 12.5, color: "var(--lh-slate)", alignSelf: "flex-end", marginTop: -4 }}
+        >
+          Forgot password?
+        </Link>
+
         <button
           type="submit"
           disabled={loading}

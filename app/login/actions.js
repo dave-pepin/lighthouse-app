@@ -3,6 +3,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { headers } from "next/headers";
 import { clientIp, checkRateLimit } from "@/lib/rateLimit";
+import * as Sentry from "@sentry/nextjs";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createSetPasswordLink } from "@/lib/setPasswordLink";
+import { sendPasswordResetEmail } from "@/lib/notify";
 
 // Moves sign-in server-side — it used to be a direct browser call to
 // supabase.auth.signInWithPassword from login/page.js — specifically so
@@ -33,4 +37,77 @@ export async function signIn(email, password) {
   const { data: profile } = await supabase.from("users").select("id").eq("id", user.id).maybeSingle();
 
   return { isAgent: !!profile };
+}
+
+// Exact, case-insensitive match for .ilike() — escapes the LIKE wildcards
+// an email can legitimately contain (_ especially).
+const likeExact = (value) => value.replace(/[\\%_]/g, (c) => `\\${c}`);
+
+// Which set-password page an account's reset link should land on, found
+// the same way the rest of the app tells the three kinds of login apart:
+// agents have a users row, title companies a title_company_contacts row,
+// clients a Journey pointing at them. Returns null if no login exists.
+async function findLoginForEmail(admin, email) {
+  const { data: agent } = await admin.from("users").select("id").ilike("email", likeExact(email)).limit(1).maybeSingle();
+  if (agent) return { userId: agent.id, path: "/agent/set-password" };
+
+  const { data: titleContact } = await admin
+    .from("title_company_contacts")
+    .select("user_id")
+    .ilike("email", likeExact(email))
+    .not("user_id", "is", null)
+    .limit(1)
+    .maybeSingle();
+  if (titleContact) return { userId: titleContact.user_id, path: "/title/set-password" };
+
+  const { data: journey } = await admin
+    .from("journeys")
+    .select("client_user_id")
+    .ilike("client_email", likeExact(email))
+    .not("client_user_id", "is", null)
+    .limit(1)
+    .maybeSingle();
+  if (journey) return { userId: journey.client_user_id, path: "/client/set-password" };
+
+  return null;
+}
+
+// "Forgot password?" — emails a fresh set-password link. Always reports
+// success whether or not the email has an account, so this can't be used
+// to find out who's signed up. Also covers someone who never finished
+// setting up from their original invite, since that link expires.
+export async function requestPasswordReset(email) {
+  const trimmed = email?.trim().toLowerCase();
+  if (!trimmed || !trimmed.includes("@")) {
+    throw new Error("Enter the email you sign in with.");
+  }
+
+  const h = await headers();
+  const ip = clientIp(h);
+  if (
+    !(await checkRateLimit(`password-reset-ip:${ip}`, { limit: 5, windowSeconds: 900 })) ||
+    !(await checkRateLimit(`password-reset-email:${trimmed}`, { limit: 3, windowSeconds: 3600 }))
+  ) {
+    throw new Error("Too many reset requests. Please try again in a little while.");
+  }
+
+  const admin = createAdminClient();
+  try {
+    const login = await findLoginForEmail(admin, trimmed);
+    if (!login) return;
+
+    // A revoked login stays revoked — a reset link would only lead to a
+    // sign-in that fails anyway.
+    const { data } = await admin.auth.admin.getUserById(login.userId);
+    const authUser = data?.user;
+    if (!authUser?.email) return;
+    const bannedUntil = authUser.banned_until;
+    if (bannedUntil && new Date(bannedUntil).getTime() > Date.now()) return;
+
+    const setPasswordLink = await createSetPasswordLink(admin, { email: authUser.email, path: login.path });
+    await sendPasswordResetEmail({ to: authUser.email, setPasswordLink });
+  } catch (err) {
+    Sentry.captureException(err);
+    throw new Error("Couldn't send the reset email right now. Please try again in a few minutes.");
+  }
 }

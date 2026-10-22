@@ -3,6 +3,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createAgentLogin } from "@/lib/agentInvite";
+import { createSetPasswordLink } from "@/lib/setPasswordLink";
+import { sendAgentWelcomeEmail } from "@/lib/notify";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { revalidatePath } from "next/cache";
 
@@ -88,6 +90,52 @@ export async function setAgentAccess(agentId, revoke) {
   if (error) {
     throw new Error(error.message);
   }
+
+  revalidatePath("/team");
+}
+
+// Sends a teammate who never finished setting up their login a fresh
+// set-password link — the original invite link is one-time-use and expires
+// quickly, and without this there was no way to get them a new one. Same
+// "verify they're in the caller's agency, then act as admin" shape as
+// setAgentAccess, since this also takes another agent's raw id.
+export async function resendAgentInvite(agentId) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error("Not signed in.");
+  }
+
+  const { data: profile } = await supabase.from("users").select("agency_id").eq("id", user.id).maybeSingle();
+  if (!profile?.agency_id) {
+    throw new Error("Couldn't find your agency.");
+  }
+
+  const admin = createAdminClient();
+
+  const { data: target } = await admin.from("users").select("agency_id, full_name").eq("id", agentId).maybeSingle();
+  if (!target || target.agency_id !== profile.agency_id) {
+    throw new Error("That agent isn't part of your agency.");
+  }
+
+  const { data: authData } = await admin.auth.admin.getUserById(agentId);
+  const authUser = authData?.user;
+  if (!authUser?.email) {
+    throw new Error("That agent has no email on file.");
+  }
+  if (authUser.last_sign_in_at) {
+    throw new Error("They've already set up their login. They can use \"Forgot password?\" on the sign-in page.");
+  }
+
+  if (!(await checkRateLimit(`invite-team:${user.id}`, { limit: 5, windowSeconds: 600 }))) {
+    throw new Error("Too many invites sent recently. Please try again in a few minutes.");
+  }
+
+  const setPasswordLink = await createSetPasswordLink(admin, { email: authUser.email, path: "/agent/set-password" });
+  await sendAgentWelcomeEmail({ to: authUser.email, fullName: target.full_name || "there", setPasswordLink });
 
   revalidatePath("/team");
 }

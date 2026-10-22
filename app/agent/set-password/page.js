@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Anchor } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -17,6 +18,7 @@ export default function AgentSetPasswordPage() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
+  const [linkExpired, setLinkExpired] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -37,6 +39,7 @@ export default function AgentSetPasswordPage() {
         setReady(!!data?.user);
         if (!data?.user) {
           setError("This link has expired or already been used.");
+          setLinkExpired(true);
         }
       });
     }
@@ -137,6 +140,15 @@ export default function AgentSetPasswordPage() {
         ) : (
           <div style={{ fontSize: 13.5, color: error ? "#B4472A" : "var(--lh-slate)" }}>
             {error || "Checking your invite link..."}
+            {linkExpired && (
+              <Link
+                href="/login/forgot"
+                className="lh-focus"
+                style={{ display: "block", marginTop: 12, color: "var(--lh-navy)", fontWeight: 600 }}
+              >
+                Send me a new link
+              </Link>
+            )}
           </div>
         )}
       </div>
