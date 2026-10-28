@@ -23,6 +23,8 @@ export async function loadPortalData(supabase, admin, journey, { previewMode = f
         // in the UI. Kept in preview mode too, since the point of preview
         // is to see exactly what the client sees.
         .not("due_date", "is", null)
+        // ...and never if the agent has marked it private.
+        .eq("client_hidden", false)
         .order("sort_order", { ascending: true }),
       supabase
         .from("documents")

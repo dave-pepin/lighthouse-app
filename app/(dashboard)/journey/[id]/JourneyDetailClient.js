@@ -22,6 +22,7 @@ import {
   Video,
   Sparkles,
   Eye,
+  EyeOff,
   Archive,
 } from "lucide-react";
 import CourseLine, { stagesForRole, stageLabel } from "@/components/CourseLine";
@@ -57,6 +58,7 @@ import {
   setMilestoneDueDate,
   setMilestoneNotes,
   setMilestoneClientNotes,
+  setMilestoneClientHidden,
   addMilestone,
   deleteMilestone,
   reorderMilestones,
@@ -316,6 +318,7 @@ export default function JourneyDetailClient({
     journey.stage === "Harbor" ? journeyStages[journeyStages.length - 2] : journey.stage
   );
   const [addingMilestone, setAddingMilestone] = useState(false);
+  const [newClientHidden, setNewClientHidden] = useState(false);
   const [invitingClient, setInvitingClient] = useState(false);
   const [inviteMessage, setInviteMessage] = useState("");
   const [inviteFailed, setInviteFailed] = useState(false);
@@ -671,9 +674,15 @@ export default function JourneyDetailClient({
   const handleAddMilestone = () => {
     const label = newLabel.trim();
     if (!label) return;
-    startTransition(() => addMilestone(journey.id, label, newStage));
+    startTransition(() => addMilestone(journey.id, label, newStage, newClientHidden));
     setNewLabel("");
+    setNewClientHidden(false);
     setAddingMilestone(false);
+  };
+
+  const handleToggleClientHidden = (e, m) => {
+    e.stopPropagation();
+    startTransition(() => setMilestoneClientHidden(m.id, journey.id, !m.client_hidden));
   };
 
   const handleDeleteMilestone = (e, m) => {
@@ -2315,6 +2324,19 @@ export default function JourneyDetailClient({
                       }}
                     >
                       <button
+                        onClick={(e) => handleToggleClientHidden(e, m)}
+                        disabled={isPending}
+                        aria-pressed={!!m.client_hidden}
+                        title={m.client_hidden ? "Private — only you can see this. Click to show it to the client" : "Click to make this private (hide it from the client)"}
+                        style={{ background: "none", border: "none", padding: 0, cursor: "pointer", flexShrink: 0, display: "flex" }}
+                      >
+                        {m.client_hidden ? (
+                          <EyeOff size={14} color="var(--lh-gold)" strokeWidth={1.9} />
+                        ) : (
+                          <Eye size={14} color="var(--lh-slate-light)" strokeWidth={1.9} />
+                        )}
+                      </button>
+                      <button
                         onClick={(e) => handleToggleMilestone(e, m)}
                         disabled={isPending}
                         style={{ background: "none", border: "none", padding: 0, cursor: "pointer", flexShrink: 0 }}
@@ -2360,7 +2382,22 @@ export default function JourneyDetailClient({
                           UP NEXT
                         </span>
                       )}
-                      {!m.due_date && (
+                      {m.client_hidden ? (
+                        <span
+                          className="lh-mono"
+                          title="Only you can see this milestone — it never appears in the client's portal"
+                          style={{
+                            fontSize: 9.5,
+                            color: "var(--lh-gold)",
+                            border: "1px solid var(--lh-gold)",
+                            borderRadius: 20,
+                            padding: "1px 7px",
+                            flexShrink: 0,
+                          }}
+                        >
+                          PRIVATE
+                        </span>
+                      ) : !m.due_date && (
                         <span
                           className="lh-mono"
                           title="Milestones only appear to the client once you set a due date"
@@ -2803,6 +2840,7 @@ export default function JourneyDetailClient({
                   onClick={() => {
                     setAddingMilestone(false);
                     setNewLabel("");
+                    setNewClientHidden(false);
                   }}
                   className="lh-focus"
                   style={{
@@ -2818,6 +2856,10 @@ export default function JourneyDetailClient({
                   Cancel
                 </button>
               </div>
+              <label style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: "var(--lh-slate)", cursor: "pointer" }}>
+                <input type="checkbox" checked={newClientHidden} onChange={(e) => setNewClientHidden(e.target.checked)} />
+                Private — only visible to me, never in the client&apos;s portal
+              </label>
             </div>
           ) : (
             <button

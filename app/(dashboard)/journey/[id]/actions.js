@@ -222,6 +222,9 @@ export async function suggestUpdateMessage(journeyId) {
     .from("milestones")
     .select("id, label, done, due_date, date_type")
     .eq("journey_id", journeyId)
+    // This draft goes to the client, so it can't mention a milestone the
+    // agent has kept private.
+    .eq("client_hidden", false)
     .order("sort_order", { ascending: true });
 
   const nextMilestone = (milestones || []).find((m) => !m.done);
@@ -746,7 +749,7 @@ export async function setMilestoneClientNotes(milestoneId, journeyId, clientNote
   revalidatePath(`/journey/${journeyId}`);
 }
 
-export async function addMilestone(journeyId, label, stage) {
+export async function addMilestone(journeyId, label, stage, clientHidden = false) {
   const supabase = await createClient();
 
   const { data: existing } = await supabase
@@ -764,7 +767,17 @@ export async function addMilestone(journeyId, label, stage) {
     stage,
     done: false,
     sort_order: nextOrder,
+    client_hidden: !!clientHidden,
   });
+  revalidatePath(`/journey/${journeyId}`);
+}
+
+// A private milestone stays in the agent's Captain's Log but never reaches
+// the client's portal, due date or not — enforced by the milestones RLS
+// policy too (add-milestone-client-hidden-migration.sql).
+export async function setMilestoneClientHidden(milestoneId, journeyId, clientHidden) {
+  const supabase = await createClient();
+  await supabase.from("milestones").update({ client_hidden: !!clientHidden }).eq("id", milestoneId);
   revalidatePath(`/journey/${journeyId}`);
 }
 
