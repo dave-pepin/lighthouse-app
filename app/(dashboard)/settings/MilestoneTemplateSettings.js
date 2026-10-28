@@ -6,6 +6,7 @@ import { setMilestoneEnabled, reorderMilestoneStage } from "./actions";
 import { flattenTemplateForRole, sortLabelsByOverride, isLabelEnabled } from "@/lib/milestoneTemplates";
 import { reorderById } from "@/lib/reorder";
 import { usePointerReorder } from "@/lib/usePointerReorder";
+import { runAction } from "@/lib/runAction";
 
 const fieldGroupStyle = {
   background: "var(--lh-paper)",
@@ -85,7 +86,7 @@ export default function MilestoneTemplateSettings({ templateSettings }) {
       ),
     }));
     setRowError("");
-    setMilestoneEnabled(activeRole, row.stage, row.label, nextEnabled).catch((err) => {
+    runAction(setMilestoneEnabled(activeRole, row.stage, row.label, nextEnabled)).catch((err) => {
       setRowsByRole((cur) => ({ ...cur, [activeRole]: previousRows }));
       setRowError(err.message || "Couldn't save that.");
     });
@@ -112,7 +113,7 @@ export default function MilestoneTemplateSettings({ templateSettings }) {
       setRowsByRole((cur) => ({ ...cur, [activeRole]: reordered }));
 
       const stageLabelsInOrder = reordered.filter((r) => r.stage === stage).map((r) => r.label);
-      reorderMilestoneStage(activeRole, stage, stageLabelsInOrder).catch((err) => {
+      runAction(reorderMilestoneStage(activeRole, stage, stageLabelsInOrder)).catch((err) => {
         setRowsByRole((cur) => ({ ...cur, [activeRole]: previousRows }));
         setRowError(err.message || "Couldn't save that order.");
       });
@@ -146,7 +147,7 @@ export default function MilestoneTemplateSettings({ templateSettings }) {
     setNewLabelByStage((cur) => ({ ...cur, [stage]: "" }));
     setRowError("");
 
-    reorderMilestoneStage(activeRole, stage, [...stageLabels, raw]).catch((err) => {
+    runAction(reorderMilestoneStage(activeRole, stage, [...stageLabels, raw])).catch((err) => {
       setRowsByRole((cur) => ({ ...cur, [activeRole]: previousRows }));
       setRowError(err.message || "Couldn't add that milestone.");
     });

@@ -87,6 +87,7 @@ import {
   inviteTitleCompanyContact,
   setTitleCompanyAccess,
 } from "./actions";
+import { fireAction, runAction } from "@/lib/runAction";
 
 function formatDate(dateString) {
   return new Date(dateString).toLocaleDateString(undefined, {
@@ -301,7 +302,7 @@ export default function JourneyDetailClient({
       if (reordered === orderedMilestones) return;
 
       setOrderedMilestones(reordered);
-      startTransition(() => reorderMilestones(journey.id, reordered.map((row) => row.id)));
+      startTransition(() => fireAction(reorderMilestones(journey.id, reordered.map((row) => row.id))));
     },
   });
 
@@ -408,7 +409,7 @@ export default function JourneyDetailClient({
 
   const handleSaveDraft = () => {
     if (!latestUpdate) return;
-    startTransition(() => saveDraft(latestUpdate.id, journey.id, draft));
+    startTransition(() => fireAction(saveDraft(latestUpdate.id, journey.id, draft)));
     setEditing(false);
   };
 
@@ -416,7 +417,7 @@ export default function JourneyDetailClient({
     setSuggesting(true);
     setSuggestError("");
     try {
-      const suggestion = await suggestUpdateMessage(journey.id);
+      const suggestion = await runAction(suggestUpdateMessage(journey.id));
       setDraft(suggestion);
       setEditing(true);
     } catch (err) {
@@ -432,7 +433,7 @@ export default function JourneyDetailClient({
     setDeletingJourney(true);
     setDeleteJourneyError("");
     try {
-      await deleteJourney(journey.id);
+      await runAction(deleteJourney(journey.id));
       router.push("/bridge");
     } catch (err) {
       setDeleteJourneyError(err.message || "Couldn't delete this Journey.");
@@ -445,7 +446,7 @@ export default function JourneyDetailClient({
     setDeletingDocumentId(documentId);
     setDocumentError("");
     try {
-      await deleteDocument(documentId, journey.id);
+      await runAction(deleteDocument(documentId, journey.id));
       router.refresh();
     } catch (err) {
       setDocumentError(err.message || "Couldn't delete that document.");
@@ -459,7 +460,7 @@ export default function JourneyDetailClient({
     setRequestingDocumentPending(true);
     setRequestError("");
     try {
-      const { errors } = await requestDocument(journey.id, label);
+      const { errors } = await runAction(requestDocument(journey.id, label));
       if (errors.length > 0) {
         setRequestError(errors.join(" "));
       } else {
@@ -476,7 +477,7 @@ export default function JourneyDetailClient({
   const handleCancelRequest = async (requestId) => {
     setCancelingRequestId(requestId);
     try {
-      await cancelDocumentRequest(requestId, journey.id);
+      await runAction(cancelDocumentRequest(requestId, journey.id));
       router.refresh();
     } catch (err) {
       setRequestError(err.message || "Couldn't cancel that request.");
@@ -488,7 +489,7 @@ export default function JourneyDetailClient({
     setUpdatingClientAccess(true);
     setClientAccessError("");
     try {
-      await setClientAccess(journey.id, revoke);
+      await runAction(setClientAccess(journey.id, revoke));
       setConfirmingRevokeAccess(false);
       router.refresh();
     } catch (err) {
@@ -501,7 +502,7 @@ export default function JourneyDetailClient({
     setSavingTitleCompany(true);
     setTitleCompanyError("");
     try {
-      await addTitleCompanyContact(journey.id, titleCompanyDraft);
+      await runAction(addTitleCompanyContact(journey.id, titleCompanyDraft));
       setTitleCompanyDraft(emptyTitleCompanyDraft);
       setAddingTitleCompany(false);
       router.refresh();
@@ -526,7 +527,7 @@ export default function JourneyDetailClient({
     setSavingTitleCompany(true);
     setTitleCompanyError("");
     try {
-      await updateTitleCompanyContact(contactId, journey.id, titleCompanyEditDraft);
+      await runAction(updateTitleCompanyContact(contactId, journey.id, titleCompanyEditDraft));
       setEditingTitleCompanyId(null);
       router.refresh();
     } catch (err) {
@@ -539,7 +540,7 @@ export default function JourneyDetailClient({
     if (!window.confirm("Remove this title company? Their portal login (if any) will be revoked.")) return;
     setRemovingTitleCompanyId(contactId);
     try {
-      await removeTitleCompanyContact(contactId, journey.id);
+      await runAction(removeTitleCompanyContact(contactId, journey.id));
       router.refresh();
     } catch (err) {
       setTitleCompanyMessages((prev) => ({
@@ -553,7 +554,7 @@ export default function JourneyDetailClient({
   const handleInviteTitleCompany = async (contactId) => {
     setInvitingTitleCompanyId(contactId);
     try {
-      await inviteTitleCompanyContact(contactId, journey.id);
+      await runAction(inviteTitleCompanyContact(contactId, journey.id));
       setTitleCompanyMessages((prev) => ({ ...prev, [contactId]: { text: "Invite sent!", failed: false } }));
       setConfirmingTitleCompanyInviteId(null);
       router.refresh();
@@ -570,7 +571,7 @@ export default function JourneyDetailClient({
     if (revoke && !window.confirm("Revoke this title company's portal access?")) return;
     setUpdatingTitleCompanyAccessId(contactId);
     try {
-      await setTitleCompanyAccess(contactId, journey.id, revoke);
+      await runAction(setTitleCompanyAccess(contactId, journey.id, revoke));
       router.refresh();
     } catch (err) {
       setTitleCompanyMessages((prev) => ({
@@ -586,7 +587,7 @@ export default function JourneyDetailClient({
     setSendError("");
     startTransition(async () => {
       try {
-        await approveAndSend(latestUpdate.id, journey.id);
+        await runAction(approveAndSend(latestUpdate.id, journey.id));
       } catch (err) {
         setSendError(err.message || "Something went wrong sending this update.");
       }
@@ -595,7 +596,7 @@ export default function JourneyDetailClient({
 
   const handleHold = () => {
     if (!latestUpdate) return;
-    startTransition(() => holdUpdate(latestUpdate.id, journey.id));
+    startTransition(() => fireAction(holdUpdate(latestUpdate.id, journey.id)));
   };
 
   const handleSchedule = () => {
@@ -620,7 +621,7 @@ export default function JourneyDetailClient({
     const sendAtIso = new Date(scheduleValue).toISOString();
     startTransition(async () => {
       try {
-        await scheduleUpdate(latestUpdate.id, journey.id, sendAtIso);
+        await runAction(scheduleUpdate(latestUpdate.id, journey.id, sendAtIso));
         setSchedulingOpen(false);
       } catch (err) {
         setScheduleError(err.message || "Couldn't schedule this update.");
@@ -630,27 +631,27 @@ export default function JourneyDetailClient({
 
   const handleUnschedule = () => {
     if (!latestUpdate) return;
-    startTransition(() => unscheduleUpdate(latestUpdate.id, journey.id));
+    startTransition(() => fireAction(unscheduleUpdate(latestUpdate.id, journey.id)));
   };
 
   const handleResume = () => {
     if (!latestUpdate) return;
-    startTransition(() => resumeUpdate(latestUpdate.id, journey.id));
+    startTransition(() => fireAction(resumeUpdate(latestUpdate.id, journey.id)));
   };
 
   const handleToggleMilestone = (e, m) => {
     e.stopPropagation();
-    startTransition(() => toggleMilestone(m.id, journey.id, !m.done));
+    startTransition(() => fireAction(toggleMilestone(m.id, journey.id, !m.done)));
   };
 
   const handleDueDateChange = (e, m, value) => {
     e.stopPropagation();
-    startTransition(() => setMilestoneDueDate(m.id, journey.id, value));
+    startTransition(() => fireAction(setMilestoneDueDate(m.id, journey.id, value)));
   };
 
   const handleMilestoneStatusChange = (e, m, value) => {
     e.stopPropagation();
-    startTransition(() => setMilestoneStatus(m.id, journey.id, value));
+    startTransition(() => fireAction(setMilestoneStatus(m.id, journey.id, value)));
   };
 
   const toggleExpanded = (m) => {
@@ -664,17 +665,17 @@ export default function JourneyDetailClient({
   };
 
   const handleSaveNotes = (m) => {
-    startTransition(() => setMilestoneNotes(m.id, journey.id, noteDrafts[m.id] || ""));
+    startTransition(() => fireAction(setMilestoneNotes(m.id, journey.id, noteDrafts[m.id] || "")));
   };
 
   const handleSaveClientNotes = (m) => {
-    startTransition(() => setMilestoneClientNotes(m.id, journey.id, clientNoteDrafts[m.id] || ""));
+    startTransition(() => fireAction(setMilestoneClientNotes(m.id, journey.id, clientNoteDrafts[m.id] || "")));
   };
 
   const handleAddMilestone = () => {
     const label = newLabel.trim();
     if (!label) return;
-    startTransition(() => addMilestone(journey.id, label, newStage, newClientHidden));
+    startTransition(() => fireAction(addMilestone(journey.id, label, newStage, newClientHidden)));
     setNewLabel("");
     setNewClientHidden(false);
     setAddingMilestone(false);
@@ -682,12 +683,12 @@ export default function JourneyDetailClient({
 
   const handleToggleClientHidden = (e, m) => {
     e.stopPropagation();
-    startTransition(() => setMilestoneClientHidden(m.id, journey.id, !m.client_hidden));
+    startTransition(() => fireAction(setMilestoneClientHidden(m.id, journey.id, !m.client_hidden)));
   };
 
   const handleDeleteMilestone = (e, m) => {
     e.stopPropagation();
-    startTransition(() => deleteMilestone(m.id, journey.id));
+    startTransition(() => fireAction(deleteMilestone(m.id, journey.id)));
   };
 
   const handleOpenVideoPicker = (e, milestoneId) => {
@@ -706,7 +707,7 @@ export default function JourneyDetailClient({
   const handleAttachExistingVideo = (e, milestoneId) => {
     e.stopPropagation();
     if (!selectedExistingVideoId) return;
-    startTransition(() => attachVideoToMilestone(milestoneId, journey.id, selectedExistingVideoId));
+    startTransition(() => fireAction(attachVideoToMilestone(milestoneId, journey.id, selectedExistingVideoId)));
     setVideoPickerOpenId(null);
     setSelectedExistingVideoId("");
   };
@@ -738,8 +739,8 @@ export default function JourneyDetailClient({
       if (uploadError) {
         throw new Error(uploadError.message || "Couldn't upload that video.");
       }
-      const video = await createVideo(newVideoTitle || file.name, path);
-      await attachVideoToMilestone(milestoneId, journey.id, video.id);
+      const video = await runAction(createVideo(newVideoTitle || file.name, path));
+      await runAction(attachVideoToMilestone(milestoneId, journey.id, video.id));
       router.refresh();
       setVideoPickerOpenId(null);
       setNewVideoTitle("");
@@ -754,7 +755,7 @@ export default function JourneyDetailClient({
 
   const handleRemoveVideo = (e, m) => {
     e.stopPropagation();
-    startTransition(() => removeVideoFromMilestone(m.id, journey.id));
+    startTransition(() => fireAction(removeVideoFromMilestone(m.id, journey.id)));
   };
 
   const handleInviteClient = async () => {
@@ -762,7 +763,7 @@ export default function JourneyDetailClient({
     setInviteMessage("");
     setInviteFailed(false);
     try {
-      await inviteClient(journey.id);
+      await runAction(inviteClient(journey.id));
       setInviteMessage(
         journey.client_user_id
           ? "Sent them a fresh login link."
@@ -781,14 +782,14 @@ export default function JourneyDetailClient({
     setSavingClientInfo(true);
     setClientInfoError("");
     try {
-      await updateClientInfo(journey.id, {
+      await runAction(updateClientInfo(journey.id, {
         clientName: clientNameDraft,
         clientEmail: clientEmailDraft,
         clientPhone: clientPhoneDraft,
         clientEmail2: clientEmail2Draft,
         clientPhone2: clientPhone2Draft,
         updatePreference: updatePreferenceDraft,
-      });
+      }));
       setEditingClient(false);
       router.refresh();
     } catch (err) {
@@ -811,7 +812,7 @@ export default function JourneyDetailClient({
   const handleSaveStatus = async () => {
     setSavingStatus(true);
     try {
-      await setJourneyStatus(journey.id, statusLevelDraft, guidanceNoteDraft);
+      await runAction(setJourneyStatus(journey.id, statusLevelDraft, guidanceNoteDraft));
       setEditingStatus(false);
       router.refresh();
     } catch (err) {
@@ -831,7 +832,7 @@ export default function JourneyDetailClient({
   const handleStartNewUpdate = () => {
     startTransition(async () => {
       try {
-        await startNewUpdate(journey.id);
+        await runAction(startNewUpdate(journey.id));
         // Put the UI straight into edit mode with an empty draft — the new
         // row in the database really is empty, so this avoids showing
         // last week's message and matches what "Approve & Send" will
@@ -871,7 +872,7 @@ export default function JourneyDetailClient({
       if (uploadError) {
         throw new Error(uploadError.message || "Couldn't upload that file.");
       }
-      await recordDocument(journey.id, file.name, path, uploadTargetMilestoneId);
+      await runAction(recordDocument(journey.id, file.name, path, uploadTargetMilestoneId));
       router.refresh();
     } catch (err) {
       setUploadError(err.message || "Couldn't upload that file.");
@@ -883,7 +884,7 @@ export default function JourneyDetailClient({
   };
 
   const handleSaveAddress = () => {
-    startTransition(() => setPropertyAddress(journey.id, addressDraft));
+    startTransition(() => fireAction(setPropertyAddress(journey.id, addressDraft)));
     setEditingAddress(false);
   };
 
@@ -893,7 +894,7 @@ export default function JourneyDetailClient({
   };
 
   const handleSaveClosedDate = () => {
-    startTransition(() => setClosedDate(journey.id, closedDateDraft));
+    startTransition(() => fireAction(setClosedDate(journey.id, closedDateDraft)));
     setEditingClosedDate(false);
   };
 
@@ -903,15 +904,15 @@ export default function JourneyDetailClient({
   };
 
   const handleToggleReminder = (e) => {
-    startTransition(() => setAnniversaryReminder(journey.id, e.target.checked));
+    startTransition(() => fireAction(setAnniversaryReminder(journey.id, e.target.checked)));
   };
 
   const handleToggleOverdueDigestPaused = (e) => {
-    startTransition(() => setOverdueDigestPaused(journey.id, e.target.checked));
+    startTransition(() => fireAction(setOverdueDigestPaused(journey.id, e.target.checked)));
   };
 
   const handleToggleCancelled = (e) => {
-    startTransition(() => setCancelled(journey.id, e.target.checked));
+    startTransition(() => fireAction(setCancelled(journey.id, e.target.checked)));
   };
 
   return (

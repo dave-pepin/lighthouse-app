@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FileText, Upload } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getClientDocumentUploadUrl, fulfillDocumentRequest } from "./actions";
+import { runAction } from "@/lib/runAction";
 
 // One row per document an agent has asked this client for. Uploads go
 // through a signed Storage URL (minted server-side by
@@ -31,12 +32,12 @@ export default function RequestedDocumentUpload({ request, previewMode }) {
     setUploading(true);
     setError("");
     try {
-      const { path, token } = await getClientDocumentUploadUrl(request.id);
+      const { path, token } = await runAction(getClientDocumentUploadUrl(request.id));
       const { error: uploadError } = await supabase.storage.from("documents").uploadToSignedUrl(path, token, file);
       if (uploadError) {
         throw new Error(uploadError.message || "Couldn't upload that file.");
       }
-      await fulfillDocumentRequest(request.id, file.name, path);
+      await runAction(fulfillDocumentRequest(request.id, file.name, path));
       router.refresh();
     } catch (err) {
       setError(err.message || "Couldn't upload that file.");

@@ -1,5 +1,6 @@
 "use server";
 
+import { withActionErrors } from "@/lib/actionErrors";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
@@ -12,7 +13,7 @@ import { sendAgentEmail } from "@/lib/notify";
 // bucket's access rules are dashboard-configured and untracked here, so
 // this sidesteps depending on their exact wording entirely rather than
 // granting a direct RLS storage.objects INSERT policy.
-export async function getTitleCompanyDocumentUploadUrl(journeyId, fileName) {
+export const getTitleCompanyDocumentUploadUrl = withActionErrors(async function getTitleCompanyDocumentUploadUrl(journeyId, fileName) {
   const supabase = await createClient();
 
   const {
@@ -41,13 +42,13 @@ export async function getTitleCompanyDocumentUploadUrl(journeyId, fileName) {
   }
 
   return { path, token: data.token };
-}
+});
 
 // Records the file just uploaded to the signed URL above. Ownership is
 // re-verified here (not just trusted from getTitleCompanyDocumentUploadUrl)
 // since this is a separate call made after the actual upload succeeds —
 // same shape as fulfillDocumentRequest.
-export async function recordTitleCompanyDocument(journeyId, fileName, storagePath) {
+export const recordTitleCompanyDocument = withActionErrors(async function recordTitleCompanyDocument(journeyId, fileName, storagePath) {
   const supabase = await createClient();
 
   const {
@@ -87,4 +88,4 @@ export async function recordTitleCompanyDocument(journeyId, fileName, storagePat
   }
 
   revalidatePath("/title/portal");
-}
+});

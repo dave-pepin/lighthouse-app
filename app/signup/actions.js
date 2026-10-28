@@ -1,5 +1,6 @@
 "use server";
 
+import { withActionErrors } from "@/lib/actionErrors";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { stripe } from "@/lib/stripe";
 import { headers } from "next/headers";
@@ -11,7 +12,7 @@ import { clientIp, checkRateLimit } from "@/lib/rateLimit";
 // get created here — that happens in the Stripe webhook once payment
 // actually succeeds (see app/api/webhooks/stripe/route.js), so nobody
 // ever ends up with a working account that never paid.
-export async function startAgentCheckout(formData) {
+export const startAgentCheckout = withActionErrors(async function startAgentCheckout(formData) {
   const fullName = formData.get("full_name")?.toString().trim();
   const agencyName = formData.get("agency_name")?.toString().trim();
   const email = formData.get("email")?.toString().trim().toLowerCase();
@@ -77,4 +78,4 @@ export async function startAgentCheckout(formData) {
   }
 
   redirect(session.url);
-}
+});

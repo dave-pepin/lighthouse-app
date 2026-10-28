@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { updateAgencyResources, setAgencyResourceImage } from "./actions";
 import ResourceItemsList from "./ResourceItemsList";
 import { validateFile, sanitizeFilenameForStorage } from "@/lib/uploadValidation";
+import { runAction } from "@/lib/runAction";
 
 export const HARBOR_RESOURCES_LIMITS = {
   maxBytes: 25 * 1024 * 1024,
@@ -76,7 +77,7 @@ function ResourceImage({ agencyId, field, url, onChanged }) {
       if (uploadError) {
         throw new Error(uploadError.message || "Couldn't upload that image.");
       }
-      await setAgencyResourceImage(agencyId, field, path);
+      await runAction(setAgencyResourceImage(agencyId, field, path));
       onChanged?.();
       router.refresh();
     } catch (err) {
@@ -89,7 +90,7 @@ function ResourceImage({ agencyId, field, url, onChanged }) {
     setUploading(true);
     setError("");
     try {
-      await setAgencyResourceImage(agencyId, field, null);
+      await runAction(setAgencyResourceImage(agencyId, field, null));
       onChanged?.();
       router.refresh();
     } catch (err) {
@@ -188,14 +189,14 @@ export default function SettingsForm({ agency, imageUrls = {}, resourceItems = {
     setSaved(false);
     setError("");
     try {
-      await updateAgencyResources(agency.id, {
+      await runAction(updateAgencyResources(agency.id, {
         trustedContractors,
         maintenanceNote,
         propertyTaxNote,
         referralNote,
         homeValueNote,
         updateToneNotes,
-      });
+      }));
       setSaved(true);
     } catch (err) {
       setError(err.message || "Couldn't save those changes.");

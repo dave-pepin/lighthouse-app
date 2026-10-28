@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { setJourneyFinancials } from "@/app/(dashboard)/journey/[id]/actions";
 import { calculateCommission, formatCurrency, parseAmount } from "@/lib/commission";
+import { runAction } from "@/lib/runAction";
 
 const toDraft = (value) => (value == null ? "" : String(Number(value)));
 
@@ -73,7 +74,7 @@ export default function CommissionPanel({ journeyId, financials }) {
     setSaving(true);
     setError("");
     try {
-      await setJourneyFinancials(journeyId, { ...parsed, commissionType });
+      await runAction(setJourneyFinancials(journeyId, { ...parsed, commissionType }));
       setSaved(draft);
     } catch (err) {
       setError(err.message || "Couldn't save that.");

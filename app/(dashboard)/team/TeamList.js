@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { UserCircle2 } from "lucide-react";
 import { setAgentAccess, resendAgentInvite } from "./actions";
+import { runAction } from "@/lib/runAction";
 
 function AgentRow({ agent, isSelf, onChanged }) {
   const [updating, setUpdating] = useState(false);
@@ -16,7 +17,7 @@ function AgentRow({ agent, isSelf, onChanged }) {
     setResending(true);
     setError("");
     try {
-      await resendAgentInvite(agent.id);
+      await runAction(resendAgentInvite(agent.id));
       setResent(true);
     } catch (err) {
       setError(err.message || "Couldn't resend the invite.");
@@ -28,7 +29,7 @@ function AgentRow({ agent, isSelf, onChanged }) {
     setUpdating(true);
     setError("");
     try {
-      await setAgentAccess(agent.id, revoke);
+      await runAction(setAgentAccess(agent.id, revoke));
       setConfirming(false);
       onChanged();
     } catch (err) {

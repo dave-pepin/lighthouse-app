@@ -1,5 +1,6 @@
 "use server";
 
+import { withActionErrors } from "@/lib/actionErrors";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import * as Sentry from "@sentry/nextjs";
@@ -12,7 +13,7 @@ import { sendAgentEmail } from "@/lib/notify";
 // (app/client/set-password/actions.js), but keyed off title_company_contacts
 // instead of journeys.client_user_id, and a contact can only ever be tied
 // to one Journey.
-export async function notifyTitleCompanyActivated() {
+export const notifyTitleCompanyActivated = withActionErrors(async function notifyTitleCompanyActivated() {
   const supabase = await createClient();
 
   const {
@@ -65,4 +66,4 @@ export async function notifyTitleCompanyActivated() {
       }
     }
   }
-}
+});

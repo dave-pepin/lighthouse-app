@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Plus, Trash2, UserPlus, Ban } from "lucide-react";
 import { createAgencyWithAgent, addAgentToAgency, deleteAgent, deleteAgency } from "./actions";
+import { runAction } from "@/lib/runAction";
 
 const cardStyle = {
   background: "var(--lh-paper)",
@@ -97,7 +98,7 @@ function AgentRow({ agent }) {
     setDeleting(true);
     setError("");
     try {
-      await deleteAgent(agent.id);
+      await runAction(deleteAgent(agent.id));
       router.refresh();
     } catch (err) {
       setError(err.message || "Couldn't delete that agent.");
@@ -168,7 +169,7 @@ function AddAgentForm({ agencyId, onDone }) {
     setSaving(true);
     setError("");
     try {
-      await addAgentToAgency({ agencyId, fullName, email });
+      await runAction(addAgentToAgency({ agencyId, fullName, email }));
       router.refresh();
       onDone();
     } catch (err) {
@@ -221,7 +222,7 @@ function AgencyCard({ agency }) {
     setDeleting(true);
     setDeleteError("");
     try {
-      await deleteAgency(agency.id);
+      await runAction(deleteAgency(agency.id));
       router.refresh();
     } catch (err) {
       setDeleteError(err.message || "Couldn't delete that agency.");
@@ -339,7 +340,7 @@ function NewAgencyForm({ onDone }) {
     setSaving(true);
     setError("");
     try {
-      await createAgencyWithAgent({ agencyName, fullName, email, subscriptionStatus });
+      await runAction(createAgencyWithAgent({ agencyName, fullName, email, subscriptionStatus }));
       router.refresh();
       onDone();
     } catch (err) {

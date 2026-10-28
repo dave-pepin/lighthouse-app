@@ -1,5 +1,6 @@
 "use server";
 
+import { withActionErrors } from "@/lib/actionErrors";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createAgentLogin } from "@/lib/agentInvite";
@@ -36,7 +37,7 @@ async function requireOwner() {
 // you set yourself (e.g. "active", "comped", "trialing"); no Stripe
 // customer/subscription id gets attached, so the console shows these as
 // "Manual" rather than Stripe-billed.
-export async function createAgencyWithAgent({ agencyName, fullName, email, subscriptionStatus }) {
+export const createAgencyWithAgent = withActionErrors(async function createAgencyWithAgent({ agencyName, fullName, email, subscriptionStatus }) {
   const admin = await requireOwner();
 
   const name = agencyName?.trim();
@@ -64,13 +65,13 @@ export async function createAgencyWithAgent({ agencyName, fullName, email, subsc
   }
 
   revalidatePath("/admin");
-}
+});
 
 // Adds a second (or third...) agent to an agency that already exists.
 // Agents can also do this themselves for their own agency from /team
 // (see inviteTeamMember in app/(dashboard)/team/actions.js) — this
 // version exists for the platform owner to do it on any agency's behalf.
-export async function addAgentToAgency({ agencyId, fullName, email }) {
+export const addAgentToAgency = withActionErrors(async function addAgentToAgency({ agencyId, fullName, email }) {
   const admin = await requireOwner();
 
   const agentName = fullName?.trim();
@@ -87,13 +88,13 @@ export async function addAgentToAgency({ agencyId, fullName, email }) {
   await createAgentLogin(admin, { agencyId, fullName: agentName, email: agentEmail });
 
   revalidatePath("/admin");
-}
+});
 
 // Deliberately blocked if the agent still owns any Journeys — this list
 // is a fast place to click, and one click shouldn't be able to silently
 // orphan or lose real client data. Delete their Journeys first (from
 // their own Journey pages), then remove the agent.
-export async function deleteAgent(agentId) {
+export const deleteAgent = withActionErrors(async function deleteAgent(agentId) {
   const admin = await requireOwner();
 
   const { data: agent } = await admin
@@ -130,7 +131,7 @@ export async function deleteAgent(agentId) {
   await admin.auth.admin.deleteUser(agentId).catch(() => {});
 
   revalidatePath("/admin");
-}
+});
 
 // Removes every file under a folder in a given storage bucket. Safe to
 // call even if the folder doesn't exist or is already empty.
@@ -145,7 +146,7 @@ async function purgeStorageFolder(admin, bucket, folder) {
 // document, photo, video, and login underneath it. Unlike deleteAgent,
 // this always cascades: that's the entire point of removing a customer
 // outright, so the UI must get a type-to-confirm before calling this.
-export async function deleteAgency(agencyId) {
+export const deleteAgency = withActionErrors(async function deleteAgency(agencyId) {
   const admin = await requireOwner();
 
   const { data: agency } = await admin
@@ -219,4 +220,4 @@ export async function deleteAgency(agencyId) {
   await admin.from("agencies").delete().eq("id", agencyId);
 
   revalidatePath("/admin");
-}
+});

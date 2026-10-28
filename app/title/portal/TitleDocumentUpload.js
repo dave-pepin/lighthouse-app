@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Upload } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getTitleCompanyDocumentUploadUrl, recordTitleCompanyDocument } from "./actions";
+import { runAction } from "@/lib/runAction";
 
 // Lets a title company contact add a document to the Journey they were
 // invited to — unlike the client portal's RequestedDocumentUpload, this
@@ -29,12 +30,12 @@ export default function TitleDocumentUpload({ journeyId }) {
     setUploading(true);
     setError("");
     try {
-      const { path, token } = await getTitleCompanyDocumentUploadUrl(journeyId, file.name);
+      const { path, token } = await runAction(getTitleCompanyDocumentUploadUrl(journeyId, file.name));
       const { error: uploadError } = await supabase.storage.from("documents").uploadToSignedUrl(path, token, file);
       if (uploadError) {
         throw new Error(uploadError.message || "Couldn't upload that file.");
       }
-      await recordTitleCompanyDocument(journeyId, file.name, path);
+      await runAction(recordTitleCompanyDocument(journeyId, file.name, path));
       router.refresh();
     } catch (err) {
       setError(err.message || "Couldn't upload that file.");

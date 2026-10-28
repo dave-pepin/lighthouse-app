@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Check } from "lucide-react";
 import { updateMarketImpactReportFrequency } from "./actions";
+import { runAction } from "@/lib/runAction";
 
 const labelStyle = {
   fontSize: 13,
@@ -67,7 +68,7 @@ export default function MarketImpactDigestForm({ frequency }) {
     setSaved(false);
     setError("");
     try {
-      await updateMarketImpactReportFrequency(value === "" ? null : value);
+      await runAction(updateMarketImpactReportFrequency(value === "" ? null : value));
       setSaved(true);
     } catch (err) {
       setError(err.message || "Couldn't save that preference.");

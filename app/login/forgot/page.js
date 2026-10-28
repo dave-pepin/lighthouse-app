@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Anchor } from "lucide-react";
 import { requestPasswordReset } from "../actions";
+import { runAction } from "@/lib/runAction";
 
 // Lives under /login so the middleware's existing public carve-out for the
 // login page covers it too.
@@ -18,7 +19,7 @@ export default function ForgotPasswordPage() {
     setError("");
     setLoading(true);
     try {
-      const result = await requestPasswordReset(email);
+      const result = await runAction(requestPasswordReset(email));
       if (result?.error) setError(result.error);
       else setSent(true);
     } catch {

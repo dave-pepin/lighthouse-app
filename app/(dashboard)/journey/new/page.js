@@ -7,6 +7,7 @@ import { stagesForRole, stageLabel } from "@/components/CourseLine";
 import { formatUSPhoneInput } from "@/lib/phone";
 import ProductTour from "@/components/ProductTour";
 import { createJourney } from "./actions";
+import { runAction } from "@/lib/runAction";
 
 const tourSteps = [
   {
@@ -82,7 +83,7 @@ export default function NewJourneyPage() {
     setSubmitting(true);
     setError("");
     try {
-      await createJourney(formData);
+      await runAction(createJourney(formData));
     } catch (err) {
       // NEXT_REDIRECT is thrown on success — let it propagate.
       if (err?.digest?.startsWith("NEXT_REDIRECT")) throw err;

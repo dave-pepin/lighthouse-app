@@ -7,6 +7,7 @@ import { reorderJourneys, setWeeklyCallMade } from "@/app/(dashboard)/bridge/act
 import { reorderById } from "@/lib/reorder";
 import { usePointerReorder } from "@/lib/usePointerReorder";
 import { calledThisWeek } from "@/lib/weeklyCall";
+import { fireAction, runAction, showActionError } from "@/lib/runAction";
 
 // Last whitespace-separated word of the client's name — client_name is a
 // single free-text field (not split first/last), so this is a best-effort
@@ -62,15 +63,24 @@ export default function JourneyList({ journeys }) {
     setOrderedJourneys((prev) => prev.map((j) => (j.id === journeyId ? { ...j, ...fields } : j)));
 
   // Optimistic tick, then fills in "Called by …" once the server has looked
-  // up the caller's name.
+  // up the caller's name — or puts the checkbox back if the save failed.
   const handleWeeklyCallToggle = (journeyId, made) => {
+    const previous = orderedJourneys.find((j) => j.id === journeyId);
     updateJourney(journeyId, {
       weekly_call_made_at: made ? new Date().toISOString() : null,
       weekly_call_made_by_name: null,
     });
     startTransition(async () => {
-      const { weeklyCallMadeByName } = await setWeeklyCallMade(journeyId, made);
-      if (made) updateJourney(journeyId, { weekly_call_made_by_name: weeklyCallMadeByName });
+      try {
+        const { weeklyCallMadeByName } = await runAction(setWeeklyCallMade(journeyId, made));
+        if (made) updateJourney(journeyId, { weekly_call_made_by_name: weeklyCallMadeByName });
+      } catch (err) {
+        updateJourney(journeyId, {
+          weekly_call_made_at: previous?.weekly_call_made_at ?? null,
+          weekly_call_made_by_name: previous?.weekly_call_made_by_name ?? null,
+        });
+        showActionError(err.message);
+      }
     });
   };
 
@@ -86,7 +96,7 @@ export default function JourneyList({ journeys }) {
       if (reordered === orderedJourneys) return;
 
       setOrderedJourneys(reordered);
-      startTransition(() => reorderJourneys(reordered.map((j) => j.id)));
+      startTransition(() => fireAction(reorderJourneys(reordered.map((j) => j.id))));
     },
   });
 
@@ -97,7 +107,7 @@ export default function JourneyList({ journeys }) {
   const handleUseThisOrder = () => {
     setOrderedJourneys(displayedJourneys);
     setSortMode("manual");
-    startTransition(() => reorderJourneys(displayedJourneys.map((j) => j.id)));
+    startTransition(() => fireAction(reorderJourneys(displayedJourneys.map((j) => j.id))));
   };
 
   return (

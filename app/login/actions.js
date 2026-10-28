@@ -1,5 +1,6 @@
 "use server";
 
+import { withActionErrors } from "@/lib/actionErrors";
 import { createClient } from "@/lib/supabase/server";
 import { headers } from "next/headers";
 import { clientIp, checkRateLimit } from "@/lib/rateLimit";
@@ -21,7 +22,7 @@ import { sendPasswordResetEmail } from "@/lib/notify";
 // Next.js replaces a thrown Server Action error's message with a generic
 // "An error occurred in the Server Components render..." so the person
 // signing in would never see why it failed.
-export async function signIn(email, password) {
+export const signIn = withActionErrors(async function signIn(email, password) {
   const h = await headers();
   const ip = clientIp(h);
 
@@ -45,7 +46,7 @@ export async function signIn(email, password) {
   const { data: profile } = await supabase.from("users").select("id").eq("id", user.id).maybeSingle();
 
   return { isAgent: !!profile };
-}
+});
 
 // Exact, case-insensitive match for .ilike() — escapes the LIKE wildcards
 // an email can legitimately contain (_ especially).
@@ -85,7 +86,7 @@ async function findLoginForEmail(admin, email) {
 // to find out who's signed up. Also covers someone who never finished
 // setting up from their original invite, since that link expires.
 // Returns { error } on failure, for the same reason as signIn above.
-export async function requestPasswordReset(email) {
+export const requestPasswordReset = withActionErrors(async function requestPasswordReset(email) {
   const trimmed = email?.trim().toLowerCase();
   if (!trimmed || !trimmed.includes("@")) {
     return { error: "Enter the email you sign in with." };
@@ -120,4 +121,4 @@ export async function requestPasswordReset(email) {
     return { error: "Couldn't send the reset email right now. Please try again in a few minutes." };
   }
   return {};
-}
+});

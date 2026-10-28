@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { UserPlus, Check } from "lucide-react";
 import { inviteTeamMember } from "./actions";
+import { runAction } from "@/lib/runAction";
 
 const inputStyle = {
   flex: "1 1 180px",
@@ -29,7 +30,7 @@ export default function InviteTeamMemberForm() {
     setSending(true);
     setError("");
     try {
-      await inviteTeamMember(name, email);
+      await runAction(inviteTeamMember(name, email));
       setMessage(`Invite sent to ${email} — they'll get an email to set up their account.`);
       setName("");
       setEmail("");

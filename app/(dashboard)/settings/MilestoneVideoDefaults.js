@@ -8,6 +8,7 @@ import { createVideo } from "@/app/(dashboard)/journey/[id]/actions";
 import { setMilestoneVideoDefault } from "./actions";
 import { flattenTemplateForRole } from "@/lib/milestoneTemplates";
 import { validateFile, sanitizeFilenameForStorage } from "@/lib/uploadValidation";
+import { runAction } from "@/lib/runAction";
 
 const MILESTONE_VIDEO_LIMITS = {
   maxBytes: 200 * 1024 * 1024,
@@ -65,7 +66,7 @@ export default function MilestoneVideoDefaults({ agencyId, videoLibrary, videoDe
       if (uploadErr) {
         throw new Error(uploadErr.message || "Couldn't upload that video.");
       }
-      const video = await createVideo(uploadTitle || file.name, path);
+      const video = await runAction(createVideo(uploadTitle || file.name, path));
       setLibrary((cur) => [{ ...video, url: null }, ...cur]);
       setUploadTitle("");
       router.refresh();
@@ -81,7 +82,7 @@ export default function MilestoneVideoDefaults({ agencyId, videoLibrary, videoDe
     setAssignments((cur) => ({ ...cur, [key]: videoId || undefined }));
     setRowError("");
     try {
-      await setMilestoneVideoDefault(role, stage, label, videoId || null);
+      await runAction(setMilestoneVideoDefault(role, stage, label, videoId || null));
     } catch (err) {
       setAssignments((cur) => ({ ...cur, [key]: previous }));
       setRowError(err.message || "Couldn't save that.");

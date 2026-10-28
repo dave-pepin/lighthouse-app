@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import AgentBrandingFooter from "@/components/AgentBrandingFooter";
 import { setAgentBrandingImage, updateAgentBrandColor, updateShowFooterName } from "./actions";
 import { validateFile, sanitizeFilenameForStorage } from "@/lib/uploadValidation";
+import { runAction } from "@/lib/runAction";
 
 const BRANDING_IMAGE_LIMITS = {
   maxBytes: 5 * 1024 * 1024,
@@ -88,7 +89,7 @@ function BrandingImageSlot({ userId, field, url, label, round, onChanged }) {
       if (uploadError) {
         throw new Error(uploadError.message || "Couldn't upload that image.");
       }
-      await setAgentBrandingImage(field, path);
+      await runAction(setAgentBrandingImage(field, path));
       onChanged?.();
       router.refresh();
     } catch (err) {
@@ -101,7 +102,7 @@ function BrandingImageSlot({ userId, field, url, label, round, onChanged }) {
     setUploading(true);
     setError("");
     try {
-      await setAgentBrandingImage(field, null);
+      await runAction(setAgentBrandingImage(field, null));
       onChanged?.();
       router.refresh();
     } catch (err) {
@@ -209,7 +210,7 @@ export default function AgentBrandingForm({
     setShowName(next);
     setSavingShowName(true);
     try {
-      await updateShowFooterName(next);
+      await runAction(updateShowFooterName(next));
       router.refresh();
     } catch {
       setShowName(!next);
@@ -222,7 +223,7 @@ export default function AgentBrandingForm({
     setSaved(false);
     setError("");
     try {
-      await updateAgentBrandColor(color);
+      await runAction(updateAgentBrandColor(color));
       setSaved(true);
       router.refresh();
     } catch (err) {
@@ -236,7 +237,7 @@ export default function AgentBrandingForm({
     setSaving(true);
     setError("");
     try {
-      await updateAgentBrandColor(null);
+      await runAction(updateAgentBrandColor(null));
       setSaved(true);
       router.refresh();
     } catch (err) {

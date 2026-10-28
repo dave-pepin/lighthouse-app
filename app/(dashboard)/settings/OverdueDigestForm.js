@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Check } from "lucide-react";
 import { updateOverdueDigestPreference } from "./actions";
+import { runAction } from "@/lib/runAction";
 
 const labelStyle = {
   fontSize: 13,
@@ -67,7 +68,7 @@ export default function OverdueDigestForm({ thresholdDays }) {
     setSaved(false);
     setError("");
     try {
-      await updateOverdueDigestPreference(value === "" ? null : Number(value));
+      await runAction(updateOverdueDigestPreference(value === "" ? null : Number(value)));
       setSaved(true);
     } catch (err) {
       setError(err.message || "Couldn't save that preference.");

@@ -8,6 +8,7 @@ import { addPropertyPhoto, deletePropertyPhoto, reorderPropertyPhotos } from "@/
 import { setActiveAgency } from "@/app/(dashboard)/switchAgencyActions";
 import { reorderById } from "@/lib/reorder";
 import { validateFile, sanitizeFilenameForStorage } from "@/lib/uploadValidation";
+import { runAction, showActionError } from "@/lib/runAction";
 
 const PROPERTY_PHOTO_LIMITS = {
   maxBytes: 10 * 1024 * 1024,
@@ -111,7 +112,7 @@ export default function Sidebar({
         if (uploadError) {
           throw new Error(uploadError.message || "Couldn't upload that photo.");
         }
-        await addPropertyPhoto(journeyId, path);
+        await runAction(addPropertyPhoto(journeyId, path));
       }
       await loadPhotos(journeyId);
     } catch (err) {
@@ -123,7 +124,11 @@ export default function Sidebar({
 
   const handleDeletePhoto = (photoId) => {
     startTransition(async () => {
-      await deletePropertyPhoto(photoId, journeyId);
+      try {
+        await runAction(deletePropertyPhoto(photoId, journeyId));
+      } catch (err) {
+        setPhotoError(err.message);
+      }
       await loadPhotos(journeyId);
     });
   };
@@ -161,7 +166,12 @@ export default function Sidebar({
 
     setPhotos(reordered);
     startTransition(async () => {
-      await reorderPropertyPhotos(journeyId, reordered.map((p) => p.id));
+      try {
+        await runAction(reorderPropertyPhotos(journeyId, reordered.map((p) => p.id)));
+      } catch (err) {
+        setPhotos(photos);
+        setPhotoError(err.message);
+      }
     });
   };
 
@@ -189,8 +199,12 @@ export default function Sidebar({
 
   const handleSwitchAgency = (agencyId) => {
     startTransition(async () => {
-      await setActiveAgency(agencyId === effectiveAgency?.ownAgencyId ? null : agencyId);
-      router.refresh();
+      try {
+        await runAction(setActiveAgency(agencyId === effectiveAgency?.ownAgencyId ? null : agencyId));
+        router.refresh();
+      } catch (err) {
+        showActionError(err.message);
+      }
     });
   };
 

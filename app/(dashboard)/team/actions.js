@@ -1,5 +1,6 @@
 "use server";
 
+import { withActionErrors } from "@/lib/actionErrors";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createAgentLogin } from "@/lib/agentInvite";
@@ -13,7 +14,7 @@ import { revalidatePath } from "next/cache";
 // own users row, so there's no cross-agency parameter to forge (simpler
 // than the "verify then admin-write" pattern setAgentAccess below needs,
 // since that one does take another agent's id as an argument).
-export async function inviteTeamMember(fullName, email) {
+export const inviteTeamMember = withActionErrors(async function inviteTeamMember(fullName, email) {
   const supabase = await createClient();
 
   const {
@@ -45,7 +46,7 @@ export async function inviteTeamMember(fullName, email) {
   await createAgentLogin(admin, { agencyId: profile.agency_id, fullName: trimmedName, email: trimmedEmail });
 
   revalidatePath("/team");
-}
+});
 
 // Same "no real permanent option" workaround used for client access —
 // see setClientAccess in journey/[id]/actions.js.
@@ -54,7 +55,7 @@ const INDEFINITE_BAN = "876000h";
 // Suspends (or restores) another agent's ability to log in. Only affects
 // their own Auth login — doesn't touch any Journeys, clients, or data
 // they own, since those stay visible to the rest of the agency either way.
-export async function setAgentAccess(agentId, revoke) {
+export const setAgentAccess = withActionErrors(async function setAgentAccess(agentId, revoke) {
   const supabase = await createClient();
 
   const {
@@ -92,14 +93,14 @@ export async function setAgentAccess(agentId, revoke) {
   }
 
   revalidatePath("/team");
-}
+});
 
 // Sends a teammate who never finished setting up their login a fresh
 // set-password link — the original invite link is one-time-use and expires
 // quickly, and without this there was no way to get them a new one. Same
 // "verify they're in the caller's agency, then act as admin" shape as
 // setAgentAccess, since this also takes another agent's raw id.
-export async function resendAgentInvite(agentId) {
+export const resendAgentInvite = withActionErrors(async function resendAgentInvite(agentId) {
   const supabase = await createClient();
 
   const {
@@ -138,4 +139,4 @@ export async function resendAgentInvite(agentId) {
   await sendAgentWelcomeEmail({ to: authUser.email, fullName: target.full_name || "there", setPasswordLink });
 
   revalidatePath("/team");
-}
+});

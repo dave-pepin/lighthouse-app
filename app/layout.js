@@ -1,4 +1,5 @@
 import "./globals.css";
+import ActionErrorNotice from "@/components/ActionErrorNotice";
 
 export const metadata = {
   title: "Lighthouse",
@@ -8,7 +9,10 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        <ActionErrorNotice />
+      </body>
     </html>
   );
 }

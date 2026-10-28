@@ -1,5 +1,6 @@
 "use server";
 
+import { withActionErrors } from "@/lib/actionErrors";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import * as Sentry from "@sentry/nextjs";
@@ -15,7 +16,7 @@ import { createShortLink } from "@/lib/shortLinks";
 import { assertRealAgencyMember } from "@/lib/agencyAccess";
 import { checkRateLimit } from "@/lib/rateLimit";
 
-export async function updateClientInfo(
+export const updateClientInfo = withActionErrors(async function updateClientInfo(
   journeyId,
   { clientName, clientEmail, clientPhone, clientEmail2, clientPhone2, updatePreference }
 ) {
@@ -68,9 +69,9 @@ export async function updateClientInfo(
 
   revalidatePath(`/journey/${journeyId}`);
   revalidatePath("/bridge");
-}
+});
 
-export async function setPropertyAddress(journeyId, address) {
+export const setPropertyAddress = withActionErrors(async function setPropertyAddress(journeyId, address) {
   const supabase = await createClient();
   await supabase
     .from("journeys")
@@ -78,12 +79,12 @@ export async function setPropertyAddress(journeyId, address) {
     .eq("id", journeyId);
   revalidatePath(`/journey/${journeyId}`);
   revalidatePath("/bridge");
-}
+});
 
 // Sale price + commission terms for the Business Tracker. Values arrive
 // already parsed (numbers or null) from CommissionPanel. RLS on
 // journey_financials limits this to the Journey's own agency's agents.
-export async function setJourneyFinancials(
+export const setJourneyFinancials = withActionErrors(async function setJourneyFinancials(
   journeyId,
   { salePrice, commissionType, commissionPercent, commissionFlat, referralPercent, officeSplitPercent }
 ) {
@@ -111,9 +112,9 @@ export async function setJourneyFinancials(
 
   revalidatePath(`/journey/${journeyId}`);
   revalidatePath("/bridge");
-}
+});
 
-export async function setClosedDate(journeyId, date) {
+export const setClosedDate = withActionErrors(async function setClosedDate(journeyId, date) {
   const supabase = await createClient();
   await supabase
     .from("journeys")
@@ -121,9 +122,9 @@ export async function setClosedDate(journeyId, date) {
     .eq("id", journeyId);
   revalidatePath(`/journey/${journeyId}`);
   revalidatePath("/harbor");
-}
+});
 
-export async function setAnniversaryReminder(journeyId, enabled) {
+export const setAnniversaryReminder = withActionErrors(async function setAnniversaryReminder(journeyId, enabled) {
   const supabase = await createClient();
   await supabase
     .from("journeys")
@@ -131,13 +132,13 @@ export async function setAnniversaryReminder(journeyId, enabled) {
     .eq("id", journeyId);
   revalidatePath(`/journey/${journeyId}`);
   revalidatePath("/harbor");
-}
+});
 
 // Pauses (or resumes) the overdue-milestone digest for one specific
 // Journey only — e.g. a listing temporarily off the market — without
 // deleting it or touching the digest for any other Journey. See
 // lib/overdueDigest.js.
-export async function setOverdueDigestPaused(journeyId, paused) {
+export const setOverdueDigestPaused = withActionErrors(async function setOverdueDigestPaused(journeyId, paused) {
   const supabase = await createClient();
   await supabase
     .from("journeys")
@@ -145,7 +146,7 @@ export async function setOverdueDigestPaused(journeyId, paused) {
     .eq("id", journeyId);
   revalidatePath(`/journey/${journeyId}`);
   revalidatePath("/bridge");
-}
+});
 
 // Cancels (or reactivates) a Journey — e.g. a client pausing until a
 // later season — without deleting it or touching its stage/milestones.
@@ -153,7 +154,7 @@ export async function setOverdueDigestPaused(journeyId, paused) {
 // nagging about a cancelled deal); reactivating doesn't automatically
 // un-pause that back, since it may have been paused separately on
 // purpose. See add-cancelled-journeys-migration.sql.
-export async function setCancelled(journeyId, cancelled) {
+export const setCancelled = withActionErrors(async function setCancelled(journeyId, cancelled) {
   const supabase = await createClient();
   await supabase
     .from("journeys")
@@ -162,14 +163,14 @@ export async function setCancelled(journeyId, cancelled) {
   revalidatePath(`/journey/${journeyId}`);
   revalidatePath("/bridge");
   revalidatePath("/cancelled");
-}
+});
 
 const STATUS_LEVELS = ["on_course", "caution", "danger"];
 
 // Backs the sailboat status badge. needs_guidance is intentionally left
 // alone here (unused elsewhere going forward) rather than dropped, so
 // nothing else that might reference it breaks.
-export async function setJourneyStatus(journeyId, statusLevel, guidanceNote) {
+export const setJourneyStatus = withActionErrors(async function setJourneyStatus(journeyId, statusLevel, guidanceNote) {
   const supabase = await createClient();
 
   const level = STATUS_LEVELS.includes(statusLevel) ? statusLevel : "on_course";
@@ -184,12 +185,12 @@ export async function setJourneyStatus(journeyId, statusLevel, guidanceNote) {
 
   revalidatePath(`/journey/${journeyId}`);
   revalidatePath("/bridge");
-}
+});
 
 // Starts a fresh, editable weekly update once the current one has already
 // been sent (or held) — there's otherwise no way to begin the next week's
 // update, since the detail page only ever shows the most recent row.
-export async function startNewUpdate(journeyId) {
+export const startNewUpdate = withActionErrors(async function startNewUpdate(journeyId) {
   const supabase = await createClient();
   await supabase.from("weekly_updates").insert({
     journey_id: journeyId,
@@ -197,9 +198,9 @@ export async function startNewUpdate(journeyId) {
     status: "draft",
   });
   revalidatePath(`/journey/${journeyId}`);
-}
+});
 
-export async function suggestUpdateMessage(journeyId) {
+export const suggestUpdateMessage = withActionErrors(async function suggestUpdateMessage(journeyId) {
   const supabase = await createClient();
 
   const {
@@ -308,15 +309,15 @@ Tone: warm and personal — like a text from someone who's genuinely glad to be 
   const prompt = `Write this week's update using this context:\n${contextLines.join("\n")}`;
 
   return generateText({ system, prompt, maxTokens: 220 });
-}
+});
 
-export async function saveDraft(updateId, journeyId, text) {
+export const saveDraft = withActionErrors(async function saveDraft(updateId, journeyId, text) {
   const supabase = await createClient();
   await supabase.from("weekly_updates").update({ draft_text: text }).eq("id", updateId);
   revalidatePath(`/journey/${journeyId}`);
-}
+});
 
-export async function approveAndSend(updateId, journeyId) {
+export const approveAndSend = withActionErrors(async function approveAndSend(updateId, journeyId) {
   const supabase = await createClient();
 
   const {
@@ -366,14 +367,14 @@ export async function approveAndSend(updateId, journeyId) {
     .update({ status: "sent", sent_via: journey.update_preference, sent_at: new Date().toISOString() })
     .eq("id", updateId);
   revalidatePath(`/journey/${journeyId}`);
-}
+});
 
 // Sets this update aside to send automatically at a future date/time —
 // see app/api/cron/send-scheduled-updates/route.js, which is what
 // actually dispatches it once scheduled_for has passed. Direct editing
 // stays available while scheduled (same as "held"); "Cancel schedule"
 // reverts to a plain draft via unscheduleUpdate below.
-export async function scheduleUpdate(updateId, journeyId, scheduledFor) {
+export const scheduleUpdate = withActionErrors(async function scheduleUpdate(updateId, journeyId, scheduledFor) {
   const supabase = await createClient();
 
   const { data: update } = await supabase
@@ -413,35 +414,35 @@ export async function scheduleUpdate(updateId, journeyId, scheduledFor) {
     .eq("id", updateId);
 
   revalidatePath(`/journey/${journeyId}`);
-}
+});
 
 // Cancels a pending scheduled send, putting the update back into the
 // normal editable draft state.
-export async function unscheduleUpdate(updateId, journeyId) {
+export const unscheduleUpdate = withActionErrors(async function unscheduleUpdate(updateId, journeyId) {
   const supabase = await createClient();
   await supabase
     .from("weekly_updates")
     .update({ status: "draft", scheduled_for: null })
     .eq("id", updateId);
   revalidatePath(`/journey/${journeyId}`);
-}
+});
 
-export async function holdUpdate(updateId, journeyId) {
+export const holdUpdate = withActionErrors(async function holdUpdate(updateId, journeyId) {
   const supabase = await createClient();
   await supabase.from("weekly_updates").update({ status: "held" }).eq("id", updateId);
   revalidatePath(`/journey/${journeyId}`);
-}
+});
 
 // Un-holds a held update, putting it back into the normal draft state so
 // Approve & Send / Hold are available again — there was previously no way
 // back once something was held.
-export async function resumeUpdate(updateId, journeyId) {
+export const resumeUpdate = withActionErrors(async function resumeUpdate(updateId, journeyId) {
   const supabase = await createClient();
   await supabase.from("weekly_updates").update({ status: "draft" }).eq("id", updateId);
   revalidatePath(`/journey/${journeyId}`);
-}
+});
 
-export async function recordDocument(journeyId, name, storagePath, milestoneId = null) {
+export const recordDocument = withActionErrors(async function recordDocument(journeyId, name, storagePath, milestoneId = null) {
   const supabase = await createClient();
   await supabase.from("documents").insert({
     journey_id: journeyId,
@@ -450,11 +451,11 @@ export async function recordDocument(journeyId, name, storagePath, milestoneId =
     milestone_id: milestoneId,
   });
   revalidatePath(`/journey/${journeyId}`);
-}
+});
 
 // Deletes a document's row and its underlying file in storage — whether
 // it's attached to a milestone or sitting in the general Documents list.
-export async function deleteDocument(documentId, journeyId) {
+export const deleteDocument = withActionErrors(async function deleteDocument(documentId, journeyId) {
   const supabase = await createClient();
 
   // Read through the regular RLS-scoped client first, so this can only
@@ -482,7 +483,7 @@ export async function deleteDocument(documentId, journeyId) {
   }
 
   revalidatePath(`/journey/${journeyId}`);
-}
+});
 
 // Asks a client for a specific document, and notifies them right away
 // (email/text, per their update_preference) — see
@@ -492,7 +493,7 @@ export async function deleteDocument(documentId, journeyId) {
 // then the admin client performs the actual write, since
 // document_requests intentionally has no INSERT/UPDATE policies of its
 // own (see add-document-requests-migration.sql).
-export async function requestDocument(journeyId, label) {
+export const requestDocument = withActionErrors(async function requestDocument(journeyId, label) {
   const supabase = await createClient();
 
   const {
@@ -547,12 +548,12 @@ export async function requestDocument(journeyId, label) {
 
   revalidatePath(`/journey/${journeyId}`);
   return { request, errors };
-}
+});
 
 // Cancels a request that hasn't been fulfilled yet — the client simply
 // stops seeing it on their portal. Doesn't touch a request that's already
 // been fulfilled (there'd be a document tied to it by then).
-export async function cancelDocumentRequest(requestId, journeyId) {
+export const cancelDocumentRequest = withActionErrors(async function cancelDocumentRequest(requestId, journeyId) {
   const supabase = await createClient();
 
   const {
@@ -590,11 +591,11 @@ export async function cancelDocumentRequest(requestId, journeyId) {
   }
 
   revalidatePath(`/journey/${journeyId}`);
-}
+});
 
 const MAX_PROPERTY_PHOTOS = 5;
 
-export async function addPropertyPhoto(journeyId, storagePath) {
+export const addPropertyPhoto = withActionErrors(async function addPropertyPhoto(journeyId, storagePath) {
   const supabase = await createClient();
 
   const { data: existing } = await supabase
@@ -621,18 +622,18 @@ export async function addPropertyPhoto(journeyId, storagePath) {
   });
 
   revalidatePath(`/journey/${journeyId}`);
-}
+});
 
-export async function deletePropertyPhoto(photoId, journeyId) {
+export const deletePropertyPhoto = withActionErrors(async function deletePropertyPhoto(photoId, journeyId) {
   const supabase = await createClient();
   await supabase.from("property_photos").delete().eq("id", photoId);
   revalidatePath(`/journey/${journeyId}`);
-}
+});
 
 // Persists a full manual reorder from drag-and-drop in one batch —
 // orderedIds is every photo id for this journey in its new order, which
 // becomes the new sort_order (index 0 is the main photo clients see).
-export async function reorderPropertyPhotos(journeyId, orderedIds) {
+export const reorderPropertyPhotos = withActionErrors(async function reorderPropertyPhotos(journeyId, orderedIds) {
   const supabase = await createClient();
 
   for (let index = 0; index < orderedIds.length; index++) {
@@ -644,7 +645,7 @@ export async function reorderPropertyPhotos(journeyId, orderedIds) {
   }
 
   revalidatePath(`/journey/${journeyId}`);
-}
+});
 
 // If marking something done just finished every milestone in the
 // Journey's current stage, auto-advance the course-line to the next
@@ -694,7 +695,7 @@ async function maybeAdvanceStage(supabase, journeyId) {
   await supabase.from("journeys").update(update).eq("id", journeyId);
 }
 
-export async function toggleMilestone(milestoneId, journeyId, done) {
+export const toggleMilestone = withActionErrors(async function toggleMilestone(milestoneId, journeyId, done) {
   const supabase = await createClient();
   await supabase.from("milestones").update({ done }).eq("id", milestoneId);
 
@@ -704,21 +705,21 @@ export async function toggleMilestone(milestoneId, journeyId, done) {
 
   revalidatePath(`/journey/${journeyId}`);
   revalidatePath("/bridge");
-}
+});
 
-export async function setMilestoneDueDate(milestoneId, journeyId, dueDate) {
+export const setMilestoneDueDate = withActionErrors(async function setMilestoneDueDate(milestoneId, journeyId, dueDate) {
   const supabase = await createClient();
   await supabase
     .from("milestones")
     .update({ due_date: dueDate || null })
     .eq("id", milestoneId);
   revalidatePath(`/journey/${journeyId}`);
-}
+});
 
 // Backs the agent-facing "Completed / Estimated / Scheduled" pulldown.
 // Keeps `done` and `date_type` consistent from one control instead of
 // juggling the checkbox and a separate field.
-export async function setMilestoneStatus(milestoneId, journeyId, status) {
+export const setMilestoneStatus = withActionErrors(async function setMilestoneStatus(milestoneId, journeyId, status) {
   const supabase = await createClient();
 
   if (status === "completed") {
@@ -733,23 +734,23 @@ export async function setMilestoneStatus(milestoneId, journeyId, status) {
 
   revalidatePath(`/journey/${journeyId}`);
   revalidatePath("/bridge");
-}
+});
 
-export async function setMilestoneNotes(milestoneId, journeyId, notes) {
+export const setMilestoneNotes = withActionErrors(async function setMilestoneNotes(milestoneId, journeyId, notes) {
   const supabase = await createClient();
   await supabase.from("milestones").update({ notes }).eq("id", milestoneId);
   revalidatePath(`/journey/${journeyId}`);
-}
+});
 
 // Unlike setMilestoneNotes (private to the agent), this one is shown to
 // the client on their portal — see ClientMilestoneList.js.
-export async function setMilestoneClientNotes(milestoneId, journeyId, clientNotes) {
+export const setMilestoneClientNotes = withActionErrors(async function setMilestoneClientNotes(milestoneId, journeyId, clientNotes) {
   const supabase = await createClient();
   await supabase.from("milestones").update({ client_notes: clientNotes }).eq("id", milestoneId);
   revalidatePath(`/journey/${journeyId}`);
-}
+});
 
-export async function addMilestone(journeyId, label, stage, clientHidden = false) {
+export const addMilestone = withActionErrors(async function addMilestone(journeyId, label, stage, clientHidden = false) {
   const supabase = await createClient();
 
   const { data: existing } = await supabase
@@ -770,27 +771,27 @@ export async function addMilestone(journeyId, label, stage, clientHidden = false
     client_hidden: !!clientHidden,
   });
   revalidatePath(`/journey/${journeyId}`);
-}
+});
 
 // A private milestone stays in the agent's Captain's Log but never reaches
 // the client's portal, due date or not — enforced by the milestones RLS
 // policy too (add-milestone-client-hidden-migration.sql).
-export async function setMilestoneClientHidden(milestoneId, journeyId, clientHidden) {
+export const setMilestoneClientHidden = withActionErrors(async function setMilestoneClientHidden(milestoneId, journeyId, clientHidden) {
   const supabase = await createClient();
   await supabase.from("milestones").update({ client_hidden: !!clientHidden }).eq("id", milestoneId);
   revalidatePath(`/journey/${journeyId}`);
-}
+});
 
-export async function deleteMilestone(milestoneId, journeyId) {
+export const deleteMilestone = withActionErrors(async function deleteMilestone(milestoneId, journeyId) {
   const supabase = await createClient();
   await supabase.from("milestones").delete().eq("id", milestoneId);
   revalidatePath(`/journey/${journeyId}`);
-}
+});
 
 // Persists a full manual reorder from drag-and-drop in one batch —
 // orderedIds is every milestone id for this journey in its new
 // top-to-bottom order, which becomes the new sort_order.
-export async function reorderMilestones(journeyId, orderedIds) {
+export const reorderMilestones = withActionErrors(async function reorderMilestones(journeyId, orderedIds) {
   const supabase = await createClient();
 
   for (let index = 0; index < orderedIds.length; index++) {
@@ -802,12 +803,12 @@ export async function reorderMilestones(journeyId, orderedIds) {
   }
 
   revalidatePath(`/journey/${journeyId}`);
-}
+});
 
 // Adds a newly-uploaded file to the agency's reusable video library. The
 // file itself is already in storage by the time this runs — this just
 // records it so it can be attached to this (and any future) milestone.
-export async function createVideo(title, storagePath) {
+export const createVideo = withActionErrors(async function createVideo(title, storagePath) {
   const supabase = await createClient();
 
   const {
@@ -843,21 +844,21 @@ export async function createVideo(title, storagePath) {
   }
 
   return video;
-}
+});
 
-export async function attachVideoToMilestone(milestoneId, journeyId, videoId) {
+export const attachVideoToMilestone = withActionErrors(async function attachVideoToMilestone(milestoneId, journeyId, videoId) {
   const supabase = await createClient();
   await supabase.from("milestones").update({ video_id: videoId }).eq("id", milestoneId);
   revalidatePath(`/journey/${journeyId}`);
-}
+});
 
-export async function removeVideoFromMilestone(milestoneId, journeyId) {
+export const removeVideoFromMilestone = withActionErrors(async function removeVideoFromMilestone(milestoneId, journeyId) {
   const supabase = await createClient();
   await supabase.from("milestones").update({ video_id: null }).eq("id", milestoneId);
   revalidatePath(`/journey/${journeyId}`);
-}
+});
 
-export async function inviteClient(journeyId) {
+export const inviteClient = withActionErrors(async function inviteClient(journeyId) {
   const supabase = await createClient();
 
   const {
@@ -1007,7 +1008,7 @@ export async function inviteClient(journeyId) {
   if (errors.length > 0) {
     throw new Error(errors.join(" "));
   }
-}
+});
 
 // Removes every file under a journey's folder in a given storage bucket.
 // Safe to call even if the folder doesn't exist or is already empty.
@@ -1024,7 +1025,7 @@ async function purgeStorageFolder(admin, bucket, journeyId) {
 // client's portal login if they were ever invited. Does NOT touch the
 // agency-wide videos library — those are reusable across milestones and
 // other clients, so they're left alone even if this Journey used one.
-export async function deleteJourney(journeyId) {
+export const deleteJourney = withActionErrors(async function deleteJourney(journeyId) {
   const supabase = await createClient();
 
   // Read through the regular RLS-scoped client first, so this can only
@@ -1087,7 +1088,7 @@ export async function deleteJourney(journeyId) {
   }
 
   revalidatePath("/bridge");
-}
+});
 
 // A very long ban duration stands in for "indefinitely" — Supabase's Auth
 // Admin API doesn't have a literal permanent-ban value, so this (100
@@ -1097,7 +1098,7 @@ const INDEFINITE_BAN = "876000h";
 // Blocks (or restores) a client's ability to log into their portal,
 // without touching any of their Journey data — reversible, unlike
 // deleteJourney above.
-export async function setClientAccess(journeyId, revoke) {
+export const setClientAccess = withActionErrors(async function setClientAccess(journeyId, revoke) {
   const supabase = await createClient();
 
   const { data: journey } = await supabase
@@ -1123,7 +1124,7 @@ export async function setClientAccess(journeyId, revoke) {
   }
 
   revalidatePath(`/journey/${journeyId}`);
-}
+});
 
 // Up to two title company contacts can be added to a Journey (split
 // closings in this market often have a buyer's-side and seller's-side
@@ -1131,7 +1132,7 @@ export async function setClientAccess(journeyId, revoke) {
 // contact never messages anyone; inviteTitleCompanyContact below is the
 // separate, explicit trigger for that, same "opt-in, not automatic" rule
 // as inviteClient.
-export async function addTitleCompanyContact(journeyId, { companyName, contactName, email, phone }) {
+export const addTitleCompanyContact = withActionErrors(async function addTitleCompanyContact(journeyId, { companyName, contactName, email, phone }) {
   const supabase = await createClient();
 
   const trimmedCompany = companyName?.trim();
@@ -1165,9 +1166,9 @@ export async function addTitleCompanyContact(journeyId, { companyName, contactNa
   }
 
   revalidatePath(`/journey/${journeyId}`);
-}
+});
 
-export async function updateTitleCompanyContact(contactId, journeyId, { companyName, contactName, email, phone }) {
+export const updateTitleCompanyContact = withActionErrors(async function updateTitleCompanyContact(contactId, journeyId, { companyName, contactName, email, phone }) {
   const supabase = await createClient();
 
   const trimmedCompany = companyName?.trim();
@@ -1195,12 +1196,12 @@ export async function updateTitleCompanyContact(contactId, journeyId, { companyN
   }
 
   revalidatePath(`/journey/${journeyId}`);
-}
+});
 
 // Removes a title company contact and, if they'd ever logged in, deletes
 // their Auth login too — best-effort, same reasoning as deleteJourney's
 // client cleanup.
-export async function removeTitleCompanyContact(contactId, journeyId) {
+export const removeTitleCompanyContact = withActionErrors(async function removeTitleCompanyContact(contactId, journeyId) {
   const supabase = await createClient();
 
   const { data: contact } = await supabase
@@ -1239,7 +1240,7 @@ export async function removeTitleCompanyContact(contactId, journeyId) {
   }
 
   revalidatePath(`/journey/${journeyId}`);
-}
+});
 
 // Returns false if this Auth user id actually belongs to an existing
 // agent or client account rather than a genuine title company login — an
@@ -1266,7 +1267,7 @@ async function isSafeTitleCompanyUserId(admin, userId) {
 // the other. Mirrors inviteClient closely, but email-only: title company
 // contacts are business accounts, not consumers, so none of the Twilio
 // A2P SMS opt-in/consent machinery applies here.
-export async function inviteTitleCompanyContact(contactId, journeyId) {
+export const inviteTitleCompanyContact = withActionErrors(async function inviteTitleCompanyContact(contactId, journeyId) {
   const supabase = await createClient();
 
   const {
@@ -1364,12 +1365,12 @@ export async function inviteTitleCompanyContact(contactId, journeyId) {
   });
 
   revalidatePath(`/journey/${journeyId}`);
-}
+});
 
 // Blocks (or restores) a title company contact's portal login, without
 // touching the contact record itself — same reasoning and mechanics as
 // setClientAccess above.
-export async function setTitleCompanyAccess(contactId, journeyId, revoke) {
+export const setTitleCompanyAccess = withActionErrors(async function setTitleCompanyAccess(contactId, journeyId, revoke) {
   const supabase = await createClient();
 
   const { data: contact } = await supabase
@@ -1407,4 +1408,4 @@ export async function setTitleCompanyAccess(contactId, journeyId, revoke) {
   }
 
   revalidatePath(`/journey/${journeyId}`);
-}
+});

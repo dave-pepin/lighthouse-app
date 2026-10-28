@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Anchor } from "lucide-react";
 import { startAgentCheckout } from "./actions";
+import { runAction } from "@/lib/runAction";
 
 const inputStyle = {
   border: "1px solid var(--lh-line)",
@@ -29,7 +30,7 @@ export default function SignupPage() {
     setSubmitting(true);
     setError("");
     try {
-      await startAgentCheckout(formData);
+      await runAction(startAgentCheckout(formData));
     } catch (err) {
       if (err?.digest?.startsWith("NEXT_REDIRECT")) throw err;
       setError(err.message || "Something went wrong.");

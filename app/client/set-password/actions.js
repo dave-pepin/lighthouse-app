@@ -1,5 +1,6 @@
 "use server";
 
+import { withActionErrors } from "@/lib/actionErrors";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import * as Sentry from "@sentry/nextjs";
@@ -15,7 +16,7 @@ import { sendAgentEmail } from "@/lib/notify";
 // each — so this checks every Journey under this login, not just one, and
 // notifies each Journey's own agent independently the first time that
 // specific Journey gets activated.
-export async function notifyClientActivated() {
+export const notifyClientActivated = withActionErrors(async function notifyClientActivated() {
   const supabase = await createClient();
 
   const {
@@ -62,4 +63,4 @@ export async function notifyClientActivated() {
       }
     }
   }
-}
+});

@@ -1,12 +1,13 @@
 "use server";
 
+import { withActionErrors } from "@/lib/actionErrors";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
 // Persists a full drag-and-drop reorder of the Bridge's Journey list —
 // same sequential-index pattern as reorderMilestones/reorderPropertyPhotos
 // in journey/[id]/actions.js.
-export async function reorderJourneys(orderedIds) {
+export const reorderJourneys = withActionErrors(async function reorderJourneys(orderedIds) {
   const supabase = await createClient();
 
   for (let index = 0; index < orderedIds.length; index++) {
@@ -14,12 +15,12 @@ export async function reorderJourneys(orderedIds) {
   }
 
   revalidatePath("/bridge");
-}
+});
 
 // Ticks/unticks the Bridge's "weekly update phone call made" checkbox.
 // Stored as a timestamp so it resets on its own each week (lib/weeklyCall.js),
 // along with who ticked it — the agent or a teammate covering for them.
-export async function setWeeklyCallMade(journeyId, made) {
+export const setWeeklyCallMade = withActionErrors(async function setWeeklyCallMade(journeyId, made) {
   const supabase = await createClient();
 
   let madeBy = null;
@@ -45,4 +46,4 @@ export async function setWeeklyCallMade(journeyId, made) {
 
   revalidatePath("/bridge");
   return { weeklyCallMadeByName: madeByName };
-}
+});

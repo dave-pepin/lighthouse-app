@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, X } from "lucide-react";
 import { grantDelegateAccess, revokeDelegateAccess } from "./actions";
+import { runAction } from "@/lib/runAction";
 
 const labelStyle = {
   fontSize: 13,
@@ -68,7 +69,7 @@ export default function DelegateAccessForm({ grants }) {
     setSaving(true);
     setError("");
     try {
-      await grantDelegateAccess(email, startsAt, endsAt);
+      await runAction(grantDelegateAccess(email, startsAt, endsAt));
       setEmail("");
       setStartsAt("");
       setEndsAt("");
@@ -82,7 +83,7 @@ export default function DelegateAccessForm({ grants }) {
   const handleRevoke = async (grantId) => {
     setRevokingId(grantId);
     try {
-      await revokeDelegateAccess(grantId);
+      await runAction(revokeDelegateAccess(grantId));
       router.refresh();
     } catch {
       // Nothing more useful to show — the list will just still show it,

@@ -1,5 +1,6 @@
 "use server";
 
+import { withActionErrors } from "@/lib/actionErrors";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
@@ -8,7 +9,7 @@ import { sendAgentEmail } from "@/lib/notify";
 
 // Marks that this client has seen the one-time Harbor arrival experience,
 // so future visits show the permanent (non-animated) version instead.
-export async function markHarborSeen(journeyId) {
+export const markHarborSeen = withActionErrors(async function markHarborSeen(journeyId) {
   const supabase = await createClient();
 
   const {
@@ -36,11 +37,11 @@ export async function markHarborSeen(journeyId) {
     .eq("id", journeyId);
 
   revalidatePath("/client/portal");
-}
+});
 
 // Lets an agent see the last time their client actually pressed play on a
 // milestone's video. Fires from the client portal's video element on play.
-export async function recordVideoWatched(journeyId, milestoneId) {
+export const recordVideoWatched = withActionErrors(async function recordVideoWatched(journeyId, milestoneId) {
   const supabase = await createClient();
 
   const {
@@ -71,11 +72,11 @@ export async function recordVideoWatched(journeyId, milestoneId) {
     .eq("journey_id", journeyId);
 
   revalidatePath("/client/portal");
-}
+});
 
 // Same idea as recordVideoWatched, but for documents — lets an agent see
 // whether a client ever actually opened something that was uploaded.
-export async function recordDocumentViewed(journeyId, documentId) {
+export const recordDocumentViewed = withActionErrors(async function recordDocumentViewed(journeyId, documentId) {
   const supabase = await createClient();
 
   const {
@@ -101,14 +102,14 @@ export async function recordDocumentViewed(journeyId, documentId) {
     .eq("journey_id", journeyId);
 
   revalidatePath("/client/portal");
-}
+});
 
 // Mints a one-time signed upload URL for a pending document request. Goes
 // through the admin client rather than a direct authenticated upload
 // because the "documents" Storage bucket's access rules are configured in
 // the Supabase dashboard and untracked in this repo — verifying ownership
 // here and minting a scoped, one-time URL sidesteps that unknown entirely.
-export async function getClientDocumentUploadUrl(requestId) {
+export const getClientDocumentUploadUrl = withActionErrors(async function getClientDocumentUploadUrl(requestId) {
   const supabase = await createClient();
 
   const {
@@ -140,14 +141,14 @@ export async function getClientDocumentUploadUrl(requestId) {
   }
 
   return { path, token: data.token };
-}
+});
 
 // Records the file the client just uploaded to the signed URL above,
 // marks the request fulfilled, and lets the agent know. Ownership is
 // re-verified here (not just trusted from getClientDocumentUploadUrl)
 // since this is a separate call the client's browser makes after the
 // actual upload succeeds.
-export async function fulfillDocumentRequest(requestId, fileName, storagePath) {
+export const fulfillDocumentRequest = withActionErrors(async function fulfillDocumentRequest(requestId, fileName, storagePath) {
   const supabase = await createClient();
 
   const {
@@ -195,4 +196,4 @@ export async function fulfillDocumentRequest(requestId, fileName, storagePath) {
   }
 
   revalidatePath("/client/portal");
-}
+});

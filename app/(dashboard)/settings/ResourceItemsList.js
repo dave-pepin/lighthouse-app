@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { addResourceLink, addResourceFile, removeResourceItem } from "./actions";
 import { HARBOR_RESOURCES_LIMITS } from "./SettingsForm";
 import { validateFile, sanitizeFilenameForStorage } from "@/lib/uploadValidation";
+import { runAction } from "@/lib/runAction";
 
 const FILE_TYPE_ICONS = {
   video: Video,
@@ -61,7 +62,7 @@ function ItemRow({ item, onRemoved }) {
   const handleRemove = async () => {
     setRemoving(true);
     try {
-      await removeResourceItem(item.id);
+      await runAction(removeResourceItem(item.id));
       onRemoved?.();
       router.refresh();
     } catch {
@@ -154,7 +155,7 @@ export default function ResourceItemsList({ agencyId, section, items = [] }) {
     setSaving(true);
     setError("");
     try {
-      await addResourceLink(agencyId, section, label, url);
+      await runAction(addResourceLink(agencyId, section, label, url));
       resetForm();
       router.refresh();
     } catch (err) {
@@ -194,7 +195,7 @@ export default function ResourceItemsList({ agencyId, section, items = [] }) {
       if (uploadError) {
         throw new Error(uploadError.message || "Couldn't upload that file.");
       }
-      await addResourceFile(agencyId, section, label, fileType, path);
+      await runAction(addResourceFile(agencyId, section, label, fileType, path));
       resetForm();
       router.refresh();
     } catch (err) {

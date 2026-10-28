@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Check, Phone, Plus, X } from "lucide-react";
 import { updateAgentContactInfo, provisionMyPhoneNumber, releaseMyPhoneNumber } from "./actions";
 import { formatUSPhoneInput } from "@/lib/phone";
+import { runAction } from "@/lib/runAction";
 
 const labelStyle = {
   fontSize: 13,
@@ -87,7 +88,7 @@ function PhoneNumberSection({ smsPhoneNumber }) {
     setProvisioning(true);
     setProvisionError("");
     try {
-      await provisionMyPhoneNumber(areaCode);
+      await runAction(provisionMyPhoneNumber(areaCode));
       setConfirmingProvision(false);
       router.refresh();
     } catch (err) {
@@ -100,7 +101,7 @@ function PhoneNumberSection({ smsPhoneNumber }) {
     setReleasing(true);
     setReleaseError("");
     try {
-      await releaseMyPhoneNumber();
+      await runAction(releaseMyPhoneNumber());
       setConfirmingRelease(false);
       router.refresh();
     } catch (err) {
@@ -232,7 +233,7 @@ export default function AgentContactForm({
     setSaved(false);
     setError("");
     try {
-      await updateAgentContactInfo({
+      await runAction(updateAgentContactInfo({
         replyToEmail: email,
         officeAddress: address,
         officeCity: city,
@@ -242,7 +243,7 @@ export default function AgentContactForm({
         officePhone: office,
         faxNumber: fax,
         licenseNumbers: licenses,
-      });
+      }));
       setSaved(true);
     } catch (err) {
       setError(err.message || "Couldn't save those changes.");

@@ -1,12 +1,13 @@
 "use server";
 
+import { withActionErrors } from "@/lib/actionErrors";
 import { createClient } from "@/lib/supabase/server";
 import { stagesForRole } from "@/components/CourseLine";
 import { buildMilestoneTemplate, MILESTONE_STAGE_ORDER, applyTemplateOverrides } from "@/lib/milestoneTemplates";
 import { toE164 } from "@/lib/phone";
 import { redirect } from "next/navigation";
 
-export async function createJourney(formData) {
+export const createJourney = withActionErrors(async function createJourney(formData) {
   const supabase = await createClient();
 
   const {
@@ -164,4 +165,4 @@ export async function createJourney(formData) {
   // the one deliberate, explicit trigger for all client-facing contact.
 
   redirect(`/journey/${journey.id}`);
-}
+});

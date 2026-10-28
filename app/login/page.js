@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Anchor } from "lucide-react";
 import { signIn } from "./actions";
+import { runAction } from "@/lib/runAction";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,7 +19,7 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const result = await signIn(email, password);
+      const result = await runAction(signIn(email, password));
       if (result.error) {
         setLoading(false);
         setError(result.error);
