@@ -18,10 +18,11 @@ export default function ForgotPasswordPage() {
     setError("");
     setLoading(true);
     try {
-      await requestPasswordReset(email);
-      setSent(true);
-    } catch (err) {
-      setError(err.message || "Couldn't send the reset email.");
+      const result = await requestPasswordReset(email);
+      if (result?.error) setError(result.error);
+      else setSent(true);
+    } catch {
+      setError("Couldn't send the reset email right now. Please try again in a few minutes.");
     }
     setLoading(false);
   };

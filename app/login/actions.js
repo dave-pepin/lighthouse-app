@@ -16,18 +16,26 @@ import { sendPasswordResetEmail } from "@/lib/notify";
 // Limits), not a replacement for it. Keyed by IP rather than email,
 // since brute-forcing one account is exactly what per-IP throttling
 // should catch regardless of which email is being guessed.
+//
+// Failures come back as { error } rather than being thrown: in production
+// Next.js replaces a thrown Server Action error's message with a generic
+// "An error occurred in the Server Components render..." so the person
+// signing in would never see why it failed.
 export async function signIn(email, password) {
   const h = await headers();
   const ip = clientIp(h);
 
   if (!(await checkRateLimit(`login:${ip}`, { limit: 10, windowSeconds: 300 }))) {
-    throw new Error("Too many sign-in attempts. Please try again in a few minutes.");
+    return { error: "Too many sign-in attempts. Please try again in a few minutes." };
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { error } = await supabase.auth.signInWithPassword({ email: email?.trim(), password });
   if (error) {
-    throw new Error(error.message);
+    if (error.code === "invalid_credentials" || error.message === "Invalid login credentials") {
+      return { error: "That email and password don't match. Try again, or use \"Forgot password?\" to set a new one." };
+    }
+    return { error: error.message };
   }
 
   const {
@@ -76,10 +84,11 @@ async function findLoginForEmail(admin, email) {
 // success whether or not the email has an account, so this can't be used
 // to find out who's signed up. Also covers someone who never finished
 // setting up from their original invite, since that link expires.
+// Returns { error } on failure, for the same reason as signIn above.
 export async function requestPasswordReset(email) {
   const trimmed = email?.trim().toLowerCase();
   if (!trimmed || !trimmed.includes("@")) {
-    throw new Error("Enter the email you sign in with.");
+    return { error: "Enter the email you sign in with." };
   }
 
   const h = await headers();
@@ -88,26 +97,27 @@ export async function requestPasswordReset(email) {
     !(await checkRateLimit(`password-reset-ip:${ip}`, { limit: 5, windowSeconds: 900 })) ||
     !(await checkRateLimit(`password-reset-email:${trimmed}`, { limit: 3, windowSeconds: 3600 }))
   ) {
-    throw new Error("Too many reset requests. Please try again in a little while.");
+    return { error: "Too many reset requests. Please try again in a little while." };
   }
 
   const admin = createAdminClient();
   try {
     const login = await findLoginForEmail(admin, trimmed);
-    if (!login) return;
+    if (!login) return {};
 
     // A revoked login stays revoked — a reset link would only lead to a
     // sign-in that fails anyway.
     const { data } = await admin.auth.admin.getUserById(login.userId);
     const authUser = data?.user;
-    if (!authUser?.email) return;
+    if (!authUser?.email) return {};
     const bannedUntil = authUser.banned_until;
-    if (bannedUntil && new Date(bannedUntil).getTime() > Date.now()) return;
+    if (bannedUntil && new Date(bannedUntil).getTime() > Date.now()) return {};
 
     const setPasswordLink = await createSetPasswordLink(admin, { email: authUser.email, path: login.path });
     await sendPasswordResetEmail({ to: authUser.email, setPasswordLink });
   } catch (err) {
     Sentry.captureException(err);
-    throw new Error("Couldn't send the reset email right now. Please try again in a few minutes.");
+    return { error: "Couldn't send the reset email right now. Please try again in a few minutes." };
   }
+  return {};
 }

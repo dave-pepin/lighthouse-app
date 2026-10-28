@@ -18,12 +18,17 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const { isAgent } = await signIn(email, password);
-      router.push(isAgent ? "/bridge" : "/client/portal");
+      const result = await signIn(email, password);
+      if (result.error) {
+        setLoading(false);
+        setError(result.error);
+        return;
+      }
+      router.push(result.isAgent ? "/bridge" : "/client/portal");
       router.refresh();
-    } catch (err) {
+    } catch {
       setLoading(false);
-      setError(err.message || "Couldn't sign in.");
+      setError("Couldn't sign in right now. Please try again in a moment.");
       return;
     }
     setLoading(false);
