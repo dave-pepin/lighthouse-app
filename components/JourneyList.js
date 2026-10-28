@@ -51,6 +51,11 @@ function sortedJourneys(journeys, sortMode) {
 // unwrapped, with no reordering, on the Harbor page).
 export default function JourneyList({ journeys }) {
   const [orderedJourneys, setOrderedJourneys] = useState(journeys);
+  // Pick up fresh server data (a stage that just advanced, an agency
+  // switch) instead of holding on to the first render's copy.
+  useEffect(() => {
+    setOrderedJourneys(journeys);
+  }, [journeys]);
   const [sortMode, setSortMode] = useState("manual");
   const [isPending, startTransition] = useTransition();
   // "This week" depends on the agent's own clock/timezone, so the weekly-

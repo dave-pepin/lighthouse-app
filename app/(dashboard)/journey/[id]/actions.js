@@ -11,6 +11,7 @@ import { dispatchWeeklyUpdate } from "@/lib/weeklyUpdateSend";
 import { dispatchDocumentRequestNotice } from "@/lib/documentRequestNotify";
 import { toE164 } from "@/lib/phone";
 import { stagesForRole } from "@/components/CourseLine";
+import { targetStageIndex } from "@/lib/stageAdvance";
 import { generateText } from "@/lib/openai";
 import { createShortLink } from "@/lib/shortLinks";
 import { assertRealAgencyMember } from "@/lib/agencyAccess";
@@ -647,12 +648,12 @@ export const reorderPropertyPhotos = withActionErrors(async function reorderProp
   revalidatePath(`/journey/${journeyId}`);
 });
 
-// If marking something done just finished every milestone in the
-// Journey's current stage, auto-advance the course-line to the next
-// stage. Shared by every path that can mark a milestone done — the
-// checkbox (toggleMilestone) and the status pulldown (setMilestoneStatus)
-// both need to trigger this, or the timeline silently stops advancing
-// depending on which control an agent happens to use.
+// After a milestone is marked done (or removed), move the course-line up
+// to wherever the Journey's remaining work actually is — see
+// lib/stageAdvance.js. Shared by every path that can do that — the
+// checkbox (toggleMilestone), the status pulldown (setMilestoneStatus) and
+// deleteMilestone — or the timeline silently stops advancing depending on
+// which control an agent happens to use.
 async function maybeAdvanceStage(supabase, journeyId) {
   const { data: journey } = await supabase
     .from("journeys")
@@ -662,25 +663,19 @@ async function maybeAdvanceStage(supabase, journeyId) {
 
   if (!journey?.stage) return;
 
-  const { data: stageMilestones } = await supabase
+  const { data: milestones } = await supabase
     .from("milestones")
-    .select("done")
-    .eq("journey_id", journeyId)
-    .eq("stage", journey.stage);
-
-  const allDone =
-    stageMilestones && stageMilestones.length > 0 && stageMilestones.every((m) => m.done);
-
-  if (!allDone) return;
+    .select("stage, done")
+    .eq("journey_id", journeyId);
 
   const stages = stagesForRole(journey.role);
-  const currentIndex = stages.indexOf(journey.stage);
-  const nextStage = stages[currentIndex + 1];
-  if (!nextStage) return;
+  const targetIndex = targetStageIndex(stages, journey.stage, milestones || []);
+  if (targetIndex == null) return;
+  const nextStage = stages[targetIndex];
 
   const update = {
     stage: nextStage,
-    stage_index: currentIndex + 1,
+    stage_index: targetIndex,
     last_activity_at: new Date().toISOString(),
   };
 
@@ -785,7 +780,10 @@ export const setMilestoneClientHidden = withActionErrors(async function setMiles
 export const deleteMilestone = withActionErrors(async function deleteMilestone(milestoneId, journeyId) {
   const supabase = await createClient();
   await supabase.from("milestones").delete().eq("id", milestoneId);
+  // Removing the last unfinished milestone in a stage finishes that stage.
+  await maybeAdvanceStage(supabase, journeyId);
   revalidatePath(`/journey/${journeyId}`);
+  revalidatePath("/bridge");
 });
 
 // Persists a full manual reorder from drag-and-drop in one batch —
